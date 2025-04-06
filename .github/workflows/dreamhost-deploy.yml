@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
     
     steps:
       - uses: actions/checkout@v3
@@ -33,10 +35,12 @@ jobs:
           
       - name: Deploy to DreamHost
         uses: pressidium/lftp-mirror-action@v1
+        env:
+          LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
         with:
           host: pdx1-shared-a1-25.dreamhost.com
           user: dh_2bzpfx
-          pass: ${{ secrets.SFTP_PASSWORD }}
+          pass: ${{ env.LFTP_PASSWORD }}
           remoteDir: /home/dh_2bzpfx/summercamping2025.com
           localDir: ./build
           reverse: true
