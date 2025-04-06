@@ -19,22 +19,20 @@ jobs:
           
       - name: Debug directory structure
         run: |
+          echo "Current directory:"
           pwd
+          echo "Directory contents:"
           ls -la
           
       - name: Install Dependencies
-        run: |
-          cd summer-camping
-          npm install
+        run: npm install
           
       - name: Build
-        run: |
-          cd summer-camping
-          npm run build
+        run: npm run build
           
-      - name: List build directory
+      - name: Debug build directory
         run: |
-          cd summer-camping
+          echo "Build directory contents:"
           ls -la build
           
       - name: Deploy to DreamHost
@@ -44,7 +42,7 @@ jobs:
           username: dh_2bzpfx
           password: ${{ secrets.DREAMHOST_PASSWORD }}
           port: 22
-          source: "summer-camping/build/*"
+          source: "build/*"
           target: "/home/dh_2bzpfx/summercamping2025.com/"
-          strip_components: 2
+          strip_components: 1
           overwrite: true 
