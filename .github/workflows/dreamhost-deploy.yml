@@ -18,14 +18,15 @@ jobs:
           node-version: '18'
           
       - name: Install Dependencies
-        run: |
-          cd summer-camping
-          npm install
+        working-directory: ./summer-camping
+        run: npm install
           
       - name: Build
-        run: |
-          cd summer-camping
-          npm run build
+        working-directory: ./summer-camping
+        run: npm run build
+          
+      - name: List build directory
+        run: ls -la summer-camping/build
           
       - name: Deploy to DreamHost
         uses: appleboy/scp-action@master
@@ -34,6 +35,7 @@ jobs:
           username: dh_2bzpfx
           password: ${{ secrets.DREAMHOST_PASSWORD }}
           port: 22
-          source: "summer-camping/build/*"
+          source: "./summer-camping/build/*"
           target: "/home/dh_2bzpfx/summercamping2025.com/"
-          strip_components: 2 
+          strip_components: 2
+          overwrite: true 
