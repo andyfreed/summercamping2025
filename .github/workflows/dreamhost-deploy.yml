@@ -41,6 +41,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           
+      - name: Debug SSH setup
+        run: |
+          echo "SSH directory contents:"
+          ls -la ~/.ssh/
+          echo "Testing SSH connection:"
+          ssh -v dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com 'echo "SSH connection successful"'
+          
       - name: Deploy to DreamHost
         run: |
           rsync -avz --delete build/ dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com:/home/dh_2bzpfx/summercamping2025.com/ 
