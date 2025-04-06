@@ -36,7 +36,7 @@ jobs:
         with:
           host: pdx1-shared-a1-25.dreamhost.com
           user: dh_2bzpfx
-          pass: ${{ secrets.FTP_PASSWORD }}
+          pass: ${{ secrets.SFTP_PASSWORD }}
           remoteDir: /home/dh_2bzpfx/summercamping2025.com
           localDir: ./build
           reverse: true
