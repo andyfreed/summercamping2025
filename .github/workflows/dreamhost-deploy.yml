@@ -33,4 +33,15 @@ jobs:
           pass: ${{ secrets.FTP_PASSWORD }}
           localDir: ./build
           remoteDir: /home/dh_2bzpfx/summercamping2025.com
-          options: --verbose 
+          options: --verbose --chmod=755
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: pdx1-shared-a1-25.dreamhost.com
+          username: dh_2bzpfx
+          password: ${{ secrets.FTP_PASSWORD }}
+          script: |
+            cd /home/dh_2bzpfx/summercamping2025.com
+            ls -la
+            chmod -R 755 . 
