@@ -21,7 +21,7 @@ jobs:
           
       - name: Build
         env:
-          PUBLIC_URL: https://summercamp2025.com
+          PUBLIC_URL: https://summercamping2025.com
           NODE_OPTIONS: --openssl-legacy-provider
         run: npm run build
 
@@ -40,7 +40,7 @@ jobs:
           user: dh_2bzpfx
           pass: ${{ secrets.FTP_PASSWORD }}
           localDir: ./build
-          remoteDir: /home/dh_2bzpfx/summercamp2025
+          remoteDir: /home/dh_2bzpfx/summercamping2025.com
           options: --verbose --reverse --delete-first
 
       - name: Set permissions and verify files
@@ -50,7 +50,7 @@ jobs:
           username: dh_2bzpfx
           password: ${{ secrets.FTP_PASSWORD }}
           script: |
-            cd /home/dh_2bzpfx/summercamp2025
+            cd /home/dh_2bzpfx/summercamping2025.com
             echo "Setting permissions..."
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
