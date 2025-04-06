@@ -40,7 +40,14 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
-          name: id_ed25519  # Explicitly name the key file
+          name: id_ed25519
+          
+      - name: Setup SSH keys and known_hosts
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC9fAXKFLZ3nswECY8IPiyMVyY1m5xVNzbqaOlY3d4sP github-actions-deploy" > ~/.ssh/id_ed25519.pub
+          chmod 644 ~/.ssh/id_ed25519.pub
           
       - name: Debug SSH setup
         run: |
