@@ -40,14 +40,19 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          name: id_ed25519  # Explicitly name the key file
           
       - name: Debug SSH setup
         run: |
           echo "SSH directory contents:"
           ls -la ~/.ssh/
+          echo "SSH key permissions:"
+          stat ~/.ssh/id_ed25519
+          echo "Public key content:"
+          cat ~/.ssh/id_ed25519.pub
           echo "Testing SSH connection:"
-          ssh -v dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com 'echo "SSH connection successful"'
+          ssh -vvv dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com 'echo "SSH connection successful"'
           
       - name: Deploy to DreamHost
         run: |
-          rsync -avz --delete build/ dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com:/home/dh_2bzpfx/summercamping2025.com/ 
+          rsync -e "ssh -v" -avz --delete build/ dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com:/home/dh_2bzpfx/summercamping2025.com/ 
