@@ -40,7 +40,7 @@ jobs:
           user: dh_2bzpfx
           pass: ${{ secrets.FTP_PASSWORD }}
           localDir: ./build
-          remoteDir: .
+          remoteDir: summercamping2025.com
           options: --verbose --reverse --delete-first
 
       - name: Set permissions and verify files
@@ -50,18 +50,11 @@ jobs:
           username: dh_2bzpfx
           password: ${{ secrets.FTP_PASSWORD }}
           script: |
-            echo "Home directory contents before:"
-            pwd
-            ls -la
+            cd summercamping2025.com
             echo "Setting permissions..."
-            find . -maxdepth 1 -type d -exec chmod 755 {} \;
-            find . -maxdepth 1 -type f -exec chmod 644 {} \;
-            echo "Directory contents after:"
+            find . -type d -exec chmod 755 {} \;
+            find . -type f -exec chmod 644 {} \;
+            echo "Directory contents:"
             ls -la
             echo "Checking index.html:"
-            cat index.html | head -n 5
-            echo "Current directory:"
-            pwd
-            echo "User and groups:"
-            id
-            groups 
+            cat index.html | head -n 5 
