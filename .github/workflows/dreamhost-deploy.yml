@@ -35,14 +35,13 @@ jobs:
           echo "Build directory contents:"
           ls -la build
           
-      - name: SFTP Deploy
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      - name: 📂 Deploy to DreamHost
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          username: 'dh_2bzpfx'
-          server: 'pdx1-shared-a1-25.dreamhost.com'
-          port: 22
-          local_path: './build/*'
-          remote_path: '/home/dh_2bzpfx/summercamping2025.com'
-          sftp_only: true
+          server: pdx1-shared-a1-25.dreamhost.com
+          username: dh_2bzpfx
           password: ${{ secrets.SFTP_PASSWORD }}
-          delete_remote_files: true 
+          protocol: ftps
+          local-dir: ./build/
+          server-dir: /home/dh_2bzpfx/summercamping2025.com/
+          dangerous-clean-slate: true 
