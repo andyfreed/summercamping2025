@@ -50,9 +50,17 @@ jobs:
           stat ~/.ssh/id_ed25519
           echo "Public key content:"
           ssh-keygen -y -f ~/.ssh/id_ed25519
-          echo "Testing SSH connection with debug:"
-          ssh -vvv dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com 'echo "SSH connection successful"'
+          echo "Testing SFTP connection:"
+          sftp -v dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com <<< "quit"
           
-      - name: Deploy to DreamHost
+      - name: Create SFTP batch file
         run: |
-          rsync -e "ssh -v" -avz --delete build/ dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com:/home/dh_2bzpfx/summercamping2025.com/ 
+          echo "cd /home/dh_2bzpfx/summercamping2025.com/" > sftp_batch
+          echo "rm -rf *" >> sftp_batch
+          cd build && find . -type f -print0 | while IFS= read -r -d '' file; do
+            echo "put \"$file\" \"${file#./}\"" >> ../sftp_batch
+          done
+          
+      - name: Deploy to DreamHost via SFTP
+        run: |
+          sftp -b sftp_batch dh_2bzpfx@pdx1-shared-a1-25.dreamhost.com 
