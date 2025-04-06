@@ -24,6 +24,14 @@ jobs:
           PUBLIC_URL: https://summercamping2025.com
           NODE_OPTIONS: --openssl-legacy-provider
         run: npm run build
+
+      - name: Check DNS
+        run: |
+          echo "Checking DNS records..."
+          nslookup summercamping2025.com
+          echo "Checking web server..."
+          curl -I http://summercamping2025.com || true
+          curl -I https://summercamping2025.com || true
           
       - name: Deploy to DreamHost via SFTP
         uses: pressidium/lftp-mirror-action@v1
@@ -35,7 +43,7 @@ jobs:
           remoteDir: /home/dh_2bzpfx/summercamping2025.com
           options: --verbose --reverse --delete-first
 
-      - name: Set permissions
+      - name: Set permissions and verify files
         uses: appleboy/ssh-action@master
         with:
           host: pdx1-shared-a1-25.dreamhost.com
@@ -43,6 +51,15 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           script: |
             cd /home/dh_2bzpfx/summercamping2025.com
+            echo "Setting permissions..."
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
-            ls -la 
+            echo "Directory contents:"
+            ls -la
+            echo "Checking index.html:"
+            cat index.html | head -n 5
+            echo "Checking web server configuration:"
+            pwd
+            whoami
+            echo "Apache/PHP version:"
+            php -v || true 
