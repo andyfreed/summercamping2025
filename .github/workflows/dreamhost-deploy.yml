@@ -17,17 +17,13 @@ jobs:
         with:
           node-version: '18'
           
-      - name: Debug directory structure
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Directory contents:"
-          ls -la
-          
       - name: Install Dependencies
         run: npm install
           
       - name: Build
+        env:
+          PUBLIC_URL: https://summercamping2025.com
+          NODE_OPTIONS: --openssl-legacy-provider
         run: npm run build
           
       - name: Debug build directory
@@ -35,13 +31,14 @@ jobs:
           echo "Build directory contents:"
           ls -la build
           
-      - name: 📂 Deploy to DreamHost
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Deploy to DreamHost
+        uses: pressidium/lftp-mirror-action@v1
         with:
-          server: pdx1-shared-a1-25.dreamhost.com
-          username: dh_2bzpfx
-          password: ${{ secrets.SFTP_PASSWORD }}
-          protocol: ftp
-          local-dir: ./build/
-          server-dir: /home/dh_2bzpfx/summercamping2025.com/
-          dangerous-clean-slate: true 
+          host: pdx1-shared-a1-25.dreamhost.com
+          user: dh_2bzpfx
+          pass: ${{ secrets.FTP_PASSWORD }}
+          remoteDir: /home/dh_2bzpfx/summercamping2025.com
+          localDir: ./build
+          reverse: true
+          ignoreFile: .gitignore
+          options: --verbose --delete 
