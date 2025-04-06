@@ -41,7 +41,7 @@ jobs:
           server: pdx1-shared-a1-25.dreamhost.com
           username: dh_2bzpfx
           password: ${{ secrets.SFTP_PASSWORD }}
-          protocol: ftps
+          protocol: ftp
           local-dir: ./build/
           server-dir: /home/dh_2bzpfx/summercamping2025.com/
           dangerous-clean-slate: true 
