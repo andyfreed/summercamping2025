@@ -2,7 +2,7 @@
   "name": "summer-camping",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://andyfreed.github.io/summercamping2025",
+  "homepage": "https://summercamping2025.com",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
