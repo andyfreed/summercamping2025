@@ -40,7 +40,7 @@ jobs:
           user: dh_2bzpfx
           pass: ${{ secrets.FTP_PASSWORD }}
           localDir: ./build
-          remoteDir: summercamping2025.com
+          remoteDir: ./summercamping2025.com
           options: --verbose --reverse --delete-first
 
       - name: Set permissions and verify files
@@ -50,7 +50,8 @@ jobs:
           username: dh_2bzpfx
           password: ${{ secrets.FTP_PASSWORD }}
           script: |
-            cd summercamping2025.com
+            ls -la
+            cd ./summercamping2025.com
             echo "Setting permissions..."
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
@@ -58,8 +59,9 @@ jobs:
             ls -la
             echo "Checking index.html:"
             cat index.html | head -n 5
-            echo "Checking web server configuration:"
+            echo "Current directory:"
             pwd
+            echo "Checking web server configuration:"
             whoami
             echo "Apache/PHP version:"
             php -v || true 
