@@ -1,53 +1,44 @@
 import React from 'react';
-import { Box, Typography, Paper, List, ListItem, ListItemText, Divider } from '@mui/material';
+import { Box, Container, Typography, Paper, Breadcrumbs, Link } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { useNavigate } from 'react-router-dom';
 
 function MessageBoard() {
-  // Placeholder messages
-  const messages = [
-    {
-      id: 1,
-      author: 'John Doe',
-      content: 'Welcome to the Summer Camping 2025 message board!',
-      timestamp: '2025-04-06 10:00 AM',
-    },
-    {
-      id: 2,
-      author: 'Jane Smith',
-      content: 'Looking forward to this summer!',
-      timestamp: '2025-04-06 10:30 AM',
-    },
-  ];
+  const navigate = useNavigate();
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'primary.main' }}>
-        MESSAGE BOARD
-      </Typography>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Breadcrumbs 
+        separator={<NavigateNextIcon fontSize="small" />} 
+        aria-label="breadcrumb"
+        sx={{ mb: 3 }}
+      >
+        <Link
+          underline="hover"
+          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          color="inherit"
+          onClick={() => navigate('/')}
+        >
+          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+          Home
+        </Link>
+        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          Message Board
+        </Typography>
+      </Breadcrumbs>
+
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h3" component="h1" gutterBottom color="primary" sx={{ fontWeight: 'bold' }}>
+          MESSAGE BOARD
+        </Typography>
+      </Box>
       <Paper sx={{ p: 3 }}>
-        <List>
-          {messages.map((message, index) => (
-            <React.Fragment key={message.id}>
-              <ListItem alignItems="flex-start">
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography component="span" variant="subtitle1" color="primary">
-                        {message.author}
-                      </Typography>
-                      <Typography component="span" variant="body2" color="text.secondary">
-                        {message.timestamp}
-                      </Typography>
-                    </Box>
-                  }
-                  secondary={message.content}
-                />
-              </ListItem>
-              {index < messages.length - 1 && <Divider />}
-            </React.Fragment>
-          ))}
-        </List>
+        <Typography variant="body1">
+          Community updates and discussions will be displayed here.
+        </Typography>
       </Paper>
-    </Box>
+    </Container>
   );
 }
 
