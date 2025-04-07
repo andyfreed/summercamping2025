@@ -14,47 +14,76 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#FFD700',
-      light: '#FFE55C',
-      dark: '#CC9900',
+      main: '#00e5ff',
+      light: '#6effff',
+      dark: '#00b2cc',
+      contrastText: '#000000',
     },
     secondary: {
-      main: '#9B4DCA',
-      light: '#B679E3',
-      dark: '#7A2BAD',
+      main: '#ff00e5',
+      light: '#ff6eff',
+      dark: '#c800b2',
+      contrastText: '#ffffff',
     },
     background: {
-      default: '#1E0F2F',
-      paper: '#2D1B40',
+      default: 'rgba(10, 10, 25, 0.95)',
+      paper: 'rgba(20, 20, 40, 0.7)',
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: 'rgba(255, 255, 255, 0.8)',
+      primary: '#ffffff',
+      secondary: 'rgba(255, 255, 255, 0.7)',
     },
     error: {
-      main: '#FF6B6B',
+      main: '#ff4444',
     },
     warning: {
-      main: '#FFB347',
+      main: '#ffbb33',
     },
     success: {
-      main: '#66BB6A',
+      main: '#00c851',
     },
   },
-  shape: {
-    borderRadius: 12,
+  typography: {
+    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      background: 'linear-gradient(45deg, #00e5ff, #ff00e5)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      fontWeight: 700,
+    },
+    h2: {
+      background: 'linear-gradient(45deg, #00e5ff, #ff00e5)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      fontWeight: 600,
+    },
+    h3: {
+      background: 'linear-gradient(45deg, #00e5ff, #ff00e5)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      fontWeight: 600,
+    },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          background: 'linear-gradient(135deg, #0a0a19 0%, #1a1a33 100%)',
+          minHeight: '100vh',
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {
-          border: '1px solid rgba(255, 215, 0, 0.2)',
-          background: 'linear-gradient(135deg, rgba(45, 27, 64, 0.95) 0%, rgba(30, 15, 47, 0.95) 100%)',
-          backdropFilter: 'blur(8px)',
-          transition: 'all 0.3s ease-in-out',
+          background: 'rgba(20, 20, 40, 0.5)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
           '&:hover': {
-            border: '1px solid rgba(255, 215, 0, 0.5)',
-            boxShadow: '0 8px 32px rgba(255, 215, 0, 0.15)',
+            boxShadow: '0 8px 32px rgba(0, 229, 255, 0.1)',
+            border: '1px solid rgba(0, 229, 255, 0.2)',
           },
         },
       },
@@ -62,19 +91,19 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(180deg, rgba(45, 27, 64, 0.98) 0%, rgba(30, 15, 47, 0.98) 100%)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid rgba(255, 215, 0, 0.1)',
+          background: 'rgba(10, 10, 25, 0.8)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         },
       },
     },
     MuiFab: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(135deg, #FFD700 0%, #CC9900 100%)',
-          color: '#1E0F2F',
+          background: 'linear-gradient(45deg, #00e5ff, #ff00e5)',
+          color: '#ffffff',
           '&:hover': {
-            background: 'linear-gradient(135deg, #FFE55C 0%, #FFD700 100%)',
+            background: 'linear-gradient(45deg, #ff00e5, #00e5ff)',
           },
         },
       },
@@ -82,37 +111,36 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
+          borderRadius: '8px',
           textTransform: 'none',
-          borderRadius: 8,
+          fontWeight: 500,
         },
         contained: {
-          background: 'linear-gradient(135deg, #FFD700 0%, #CC9900 100%)',
-          color: '#1E0F2F',
+          background: 'linear-gradient(45deg, #00e5ff, #ff00e5)',
+          color: '#ffffff',
           '&:hover': {
-            background: 'linear-gradient(135deg, #FFE55C 0%, #FFD700 100%)',
+            background: 'linear-gradient(45deg, #ff00e5, #00e5ff)',
+          },
+        },
+        outlined: {
+          borderColor: '#00e5ff',
+          color: '#00e5ff',
+          '&:hover': {
+            borderColor: '#ff00e5',
+            color: '#ff00e5',
           },
         },
       },
     },
-  },
-  typography: {
-    h1: {
-      background: 'linear-gradient(135deg, #FFD700 0%, #FFE55C 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-    },
-    h2: {
-      background: 'linear-gradient(135deg, #FFD700 0%, #FFE55C 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-    },
-    h3: {
-      background: 'linear-gradient(135deg, #FFD700 0%, #FFE55C 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          background: 'rgba(20, 20, 40, 0.5)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        },
+      },
     },
   },
 });
