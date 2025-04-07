@@ -274,26 +274,26 @@ function App() {
                 <Toolbar 
                   sx={{ 
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    justifyContent: { xs: 'center', sm: 'space-between' },
                     alignItems: 'center',
-                    py: { xs: 3, sm: 3 },
-                    gap: 2,
-                    flexWrap: 'wrap',
+                    py: { xs: 2, sm: 2 },
+                    gap: { xs: 1.5, sm: 2 },
                   }}
                 >
                   <Box sx={{ 
                     display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
                     alignItems: 'center', 
-                    gap: 3,
-                    flex: { xs: '1 1 100%', sm: '0 1 auto' },
-                    justifyContent: { xs: 'center', sm: 'flex-start' }
+                    gap: { xs: 1.5, sm: 3 },
+                    justifyContent: 'center',
                   }}>
                     <Box
                       component="img"
                       src="/logo.png"
                       alt="Summer Camping 2025"
                       sx={{
-                        height: { xs: '100px', sm: '120px' },
+                        height: { xs: '75px', sm: '90px' },
                         width: 'auto',
                         borderRadius: '16px',
                         transition: 'all 0.3s ease-in-out',
@@ -308,13 +308,12 @@ function App() {
                       variant="h4"
                       sx={{ 
                         fontWeight: 800,
-                        position: 'relative',
-                        textAlign: 'left',
                         background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         fontSize: { xs: '1.8rem', sm: '2.2rem' },
                         letterSpacing: '0.05em',
+                        textAlign: { xs: 'center', sm: 'left' },
                         '&::after': {
                           content: '""',
                           position: 'absolute',

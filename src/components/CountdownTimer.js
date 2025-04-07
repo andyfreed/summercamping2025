@@ -3,20 +3,21 @@ import { Box, Typography, Divider } from '@mui/material';
 
 const TARGET_DATE = new Date('2025-08-08T00:00:00');
 
-const TimeBlock = ({ value, unit }) => (
+const TimeBlock = ({ value, label }) => (
   <Box sx={{ 
     display: 'flex', 
     flexDirection: 'column', 
     alignItems: 'center',
-    minWidth: 50,
+    mx: { xs: 0.5, sm: 1 }
   }}>
     <Typography 
-      variant="body1" 
+      variant="h5" 
       sx={{ 
-        color: 'primary.main', 
         fontWeight: 'bold',
-        fontSize: '1.1rem',
-        lineHeight: 1
+        fontSize: { xs: '1.5rem', sm: '1.8rem' },
+        background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
       }}
     >
       {value}
@@ -24,29 +25,59 @@ const TimeBlock = ({ value, unit }) => (
     <Typography 
       variant="caption" 
       sx={{ 
-        color: 'text.secondary',
-        fontSize: '0.7rem',
-        textTransform: 'uppercase',
-        opacity: 0.8
+        fontSize: { xs: '0.75rem', sm: '0.9rem' },
+        opacity: 0.8 
       }}
     >
-      {unit}
+      {label}
     </Typography>
   </Box>
 );
 
-const Separator = () => (
-  <Divider 
-    orientation="vertical" 
-    flexItem 
-    sx={{ 
-      height: '70%',
-      my: 'auto',
-      borderColor: 'primary.main',
-      opacity: 0.3,
-      mx: 0.5
-    }} 
-  />
+const CompactDisplay = ({ timeLeft }) => (
+  <Box sx={{ 
+    display: 'flex', 
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: { xs: 1, sm: 2 }
+  }}>
+    <TimeBlock value={timeLeft.days} label="DAYS" />
+    <Typography sx={{ opacity: 0.7, fontSize: { xs: '1.3rem', sm: '1.6rem' } }}>:</Typography>
+    <TimeBlock value={timeLeft.hours} label="HRS" />
+    <Typography sx={{ opacity: 0.7, fontSize: { xs: '1.3rem', sm: '1.6rem' } }}>:</Typography>
+    <TimeBlock value={timeLeft.minutes} label="MIN" />
+    <Typography sx={{ opacity: 0.7, fontSize: { xs: '1.3rem', sm: '1.6rem' } }}>:</Typography>
+    <TimeBlock value={timeLeft.seconds} label="SEC" />
+  </Box>
+);
+
+const ExpandedDetails = ({ timeLeft }) => (
+  <Box sx={{ 
+    mt: 2, 
+    p: 2, 
+    borderRadius: 2,
+    background: 'rgba(255, 126, 0, 0.1)',
+    backdropFilter: 'blur(10px)'
+  }}>
+    <Typography 
+      variant="body1" 
+      sx={{ 
+        mb: 1,
+        fontSize: { xs: '1rem', sm: '1.2rem' }
+      }}
+    >
+      {timeLeft.years} years, {timeLeft.months} months, and {timeLeft.weeks} weeks
+    </Typography>
+    <Typography 
+      variant="body2" 
+      sx={{ 
+        opacity: 0.8,
+        fontSize: { xs: '0.9rem', sm: '1.1rem' }
+      }}
+    >
+      {Math.round(timeLeft.percentComplete)}% of 2024 complete
+    </Typography>
+  </Box>
 );
 
 export default function CountdownTimer() {
@@ -88,17 +119,13 @@ export default function CountdownTimer() {
       display: 'flex', 
       alignItems: 'center',
       height: '40px',
-      bgcolor: 'rgba(255, 215, 0, 0.03)',
       borderRadius: 1,
       px: 2,
     }}>
-      <TimeBlock value={timeLeft.days} unit="d" />
-      <Separator />
-      <TimeBlock value={timeLeft.hours.toString().padStart(2, '0')} unit="h" />
-      <Separator />
-      <TimeBlock value={timeLeft.minutes.toString().padStart(2, '0')} unit="m" />
-      <Separator />
-      <TimeBlock value={timeLeft.seconds.toString().padStart(2, '0')} unit="s" />
+      <TimeBlock value={timeLeft.days} label="DAYS" />
+      <TimeBlock value={timeLeft.hours.toString().padStart(2, '0')} label="HRS" />
+      <TimeBlock value={timeLeft.minutes.toString().padStart(2, '0')} label="MIN" />
+      <TimeBlock value={timeLeft.seconds.toString().padStart(2, '0')} label="SEC" />
     </Box>
   );
 } 

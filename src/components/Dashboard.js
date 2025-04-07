@@ -5,12 +5,14 @@ import HomeIcon from '@mui/icons-material/Home';
 import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat';
 import TerrainIcon from '@mui/icons-material/Terrain';
 import ForumIcon from '@mui/icons-material/Forum';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 
 const sections = [
-  { title: 'THE HOUSE', icon: HomeIcon, path: '/house', description: 'House details and management' },
-  { title: 'THE BOAT', icon: DirectionsBoatIcon, path: '/boat', description: 'Boat information and scheduling', comingSoon: true },
-  { title: 'THE AREA', icon: TerrainIcon, path: '/area', description: 'Local attractions and activities' },
-  { title: 'MESSAGE BOARD', icon: ForumIcon, path: '/messages', description: 'Community updates and discussions' }
+  { title: 'THE HOUSE', icon: HomeIcon, path: '/house', description: 'House details' },
+  { title: 'THE BOAT', icon: DirectionsBoatIcon, path: '/boat', description: 'Boat information', comingSoon: true },
+  { title: 'THE AREA', icon: TerrainIcon, path: '/area', description: 'The area sucks' },
+  { title: 'MESSAGE BOARD', icon: ForumIcon, path: '/messages', description: 'Community updates and discussions' },
+  { title: 'FOOD & BEVERAGE', icon: RestaurantIcon, path: '/food', description: 'Food and Beverage Planning and Management System', comingSoon: true }
 ];
 
 function Dashboard() {
@@ -76,37 +78,28 @@ function Dashboard() {
                       <Box
                         sx={{
                           position: 'absolute',
-                          top: { xs: 20, sm: 24 },
-                          right: { xs: 20, sm: 24 },
+                          top: { xs: 16, sm: 20 },
+                          right: { xs: 16, sm: 20 },
                           background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 100%)',
-                          borderRadius: '16px',
+                          borderRadius: '12px',
                           boxShadow: '0 4px 12px rgba(255, 126, 0, 0.3)',
-                          p: { xs: 1.5, sm: 2 },
+                          p: { xs: 1, sm: 1.25 },
                           display: 'flex',
-                          flexDirection: 'column',
+                          flexDirection: 'row',
                           alignItems: 'center',
-                          lineHeight: 1.2,
+                          gap: 0.5,
                         }}
                       >
                         <Typography
                           sx={{
                             color: 'white',
                             fontWeight: 'bold',
-                            fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                            fontSize: { xs: '0.9rem', sm: '1rem' },
                             textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
                           }}
                         >
-                          Coming
-                        </Typography>
-                        <Typography
-                          sx={{
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: { xs: '1.1rem', sm: '1.25rem' },
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          Soon
+                          Coming Soon
                         </Typography>
                       </Box>
                     </>
