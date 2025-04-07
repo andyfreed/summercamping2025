@@ -23,19 +23,20 @@ const AnimatedBackground = () => (
       '&::before, &::after': {
         content: '""',
         position: 'absolute',
-        width: '150vmax',
-        height: '150vmax',
+        width: '100%',
+        height: '100%',
         borderRadius: '50%',
-        animation: 'move 20s linear infinite',
+        animation: 'move 30s linear infinite',
+        transformOrigin: 'center center',
       },
       '&::before': {
-        background: 'rgba(123, 31, 162, 0.15)',
+        background: 'rgba(255, 126, 0, 0.1)',
         left: '-50%',
         top: '-50%',
-        animationDelay: '-5s',
+        animationDelay: '-7s',
       },
       '&::after': {
-        background: 'rgba(32, 201, 151, 0.15)',
+        background: 'rgba(0, 128, 128, 0.1)',
         right: '-50%',
         bottom: '-50%',
       },
@@ -55,27 +56,27 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#20c997',
-      light: '#63e6be',
-      dark: '#0ca678',
-      contrastText: '#ffffff',
+      main: '#FF7E00',
+      light: '#FFA040',
+      dark: '#CC6500',
+      contrastText: '#000000',
     },
     secondary: {
-      main: '#7b1fa2',
-      light: '#9c27b0',
-      dark: '#6a1b9a',
+      main: '#008080',
+      light: '#40A0A0',
+      dark: '#006666',
       contrastText: '#ffffff',
     },
     background: {
-      default: '#0a1929',
-      paper: 'rgba(10, 25, 41, 0.5)',
+      default: '#1A1A1A',
+      paper: 'rgba(26, 26, 26, 0.7)',
     },
     text: {
-      primary: '#ffffff',
-      secondary: 'rgba(255, 255, 255, 0.7)',
+      primary: '#F5E6D3',
+      secondary: 'rgba(245, 230, 211, 0.7)',
     },
     error: {
-      main: '#f44336',
+      main: '#ff4444',
     },
     warning: {
       main: '#ff9800',
@@ -87,19 +88,19 @@ const theme = createTheme({
   typography: {
     fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      background: 'linear-gradient(45deg, #20c997, #7b1fa2)',
+      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       fontWeight: 700,
     },
     h2: {
-      background: 'linear-gradient(45deg, #20c997, #7b1fa2)',
+      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       fontWeight: 600,
     },
     h3: {
-      background: 'linear-gradient(45deg, #20c997, #7b1fa2)',
+      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       fontWeight: 600,
@@ -109,7 +110,7 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background: '#0a1929',
+          background: '#1A1A1A',
           minHeight: '100vh',
         },
       },
@@ -117,16 +118,16 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          background: 'rgba(10, 25, 41, 0.3)',
+          background: 'rgba(26, 26, 26, 0.5)',
           backdropFilter: 'blur(20px)',
           borderRadius: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 126, 0, 0.1)',
           boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
           transition: 'all 0.3s ease-in-out',
           '&:hover': {
             transform: 'translateY(-5px)',
-            boxShadow: '0 8px 40px rgba(32, 201, 151, 0.2)',
-            border: '1px solid rgba(32, 201, 151, 0.3)',
+            boxShadow: '0 8px 40px rgba(255, 126, 0, 0.2)',
+            border: '1px solid rgba(255, 126, 0, 0.3)',
           },
           '&::before': {
             content: '""',
@@ -136,7 +137,7 @@ const theme = createTheme({
             right: 0,
             bottom: 0,
             borderRadius: '24px',
-            background: 'linear-gradient(45deg, rgba(32, 201, 151, 0.1), rgba(123, 31, 162, 0.1))',
+            background: 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))',
             mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
             maskComposite: 'exclude',
             padding: '1px',
@@ -148,9 +149,9 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          background: 'rgba(10, 25, 41, 0.3)',
+          background: 'rgba(26, 26, 26, 0.7)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(32, 201, 151, 0.2)',
+          borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
           boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
         },
       },
@@ -158,12 +159,12 @@ const theme = createTheme({
     MuiFab: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(45deg, #20c997, #7b1fa2)',
+          background: 'linear-gradient(45deg, #FF7E00, #008080)',
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           color: '#ffffff',
           '&:hover': {
-            background: 'linear-gradient(45deg, #7b1fa2, #20c997)',
+            background: 'linear-gradient(45deg, #008080, #FF7E00)',
           },
         },
       },
@@ -177,20 +178,20 @@ const theme = createTheme({
           backdropFilter: 'blur(20px)',
         },
         contained: {
-          background: 'linear-gradient(45deg, #20c997, #7b1fa2)',
+          background: 'linear-gradient(45deg, #FF7E00, #008080)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           color: '#ffffff',
           '&:hover': {
-            background: 'linear-gradient(45deg, #7b1fa2, #20c997)',
+            background: 'linear-gradient(45deg, #008080, #FF7E00)',
           },
         },
         outlined: {
-          borderColor: '#20c997',
-          color: '#20c997',
+          borderColor: '#FF7E00',
+          color: '#FF7E00',
           '&:hover': {
-            borderColor: '#7b1fa2',
-            color: '#7b1fa2',
-            background: 'rgba(123, 31, 162, 0.1)',
+            borderColor: '#008080',
+            color: '#008080',
+            background: 'rgba(0, 128, 128, 0.1)',
           },
         },
       },
@@ -198,10 +199,10 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          background: 'rgba(10, 25, 41, 0.3)',
+          background: 'rgba(26, 26, 26, 0.5)',
           backdropFilter: 'blur(20px)',
           borderRadius: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 126, 0, 0.1)',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -210,7 +211,7 @@ const theme = createTheme({
             right: 0,
             bottom: 0,
             borderRadius: '24px',
-            background: 'linear-gradient(45deg, rgba(32, 201, 151, 0.1), rgba(123, 31, 162, 0.1))',
+            background: 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))',
             mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
             maskComposite: 'exclude',
             padding: '1px',
@@ -228,39 +229,126 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <AnimatedBackground />
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-            <AppBar position="static" sx={{ bgcolor: 'transparent' }}>
-              <Toolbar sx={{ 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 2, sm: 4 },
-                py: { xs: 2, sm: 1 }
-              }}>
-                <Typography 
-                  variant="h6" 
-                  component="div" 
+          <Box sx={{ 
+            position: 'relative', 
+            minHeight: '100vh',
+            overflowX: 'hidden'
+          }}>
+            <AnimatedBackground />
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              minHeight: '100vh', 
+              position: 'relative', 
+              zIndex: 1,
+              maxWidth: '100vw'
+            }}>
+              <AppBar 
+                position="static" 
+                sx={{ 
+                  bgcolor: 'transparent',
+                  backgroundImage: 'linear-gradient(180deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(26, 26, 26, 0.4) 100%)',
+                  borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
+                  backdropFilter: 'blur(20px)',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(90deg, rgba(255, 126, 0, 0) 0%, rgba(255, 126, 0, 0.1) 50%, rgba(255, 126, 0, 0) 100%)',
+                    animation: 'shimmer 3s infinite',
+                  },
+                  '@keyframes shimmer': {
+                    '0%': {
+                      transform: 'translateX(-100%)',
+                    },
+                    '100%': {
+                      transform: 'translateX(100%)',
+                    },
+                  },
+                }}
+              >
+                <Toolbar 
                   sx={{ 
-                    color: 'primary.main', 
-                    fontWeight: 700,
-                    flexGrow: { sm: 1 }
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    py: { xs: 3, sm: 3 },
+                    gap: 2,
+                    flexWrap: 'wrap',
                   }}
                 >
-                  SUMMER CAMPING 2025
-                </Typography>
-                <CountdownTimer />
-              </Toolbar>
-            </AppBar>
-            <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/house" element={<House />} />
-                <Route path="/boat" element={<Boat />} />
-                <Route path="/area" element={<Area />} />
-                <Route path="/messages" element={<MessageBoard />} />
-              </Routes>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 3,
+                    flex: { xs: '1 1 100%', sm: '0 1 auto' },
+                    justifyContent: { xs: 'center', sm: 'flex-start' }
+                  }}>
+                    <Box
+                      component="img"
+                      src="/logo.png"
+                      alt="Summer Camping 2025"
+                      sx={{
+                        height: { xs: '100px', sm: '120px' },
+                        width: 'auto',
+                        borderRadius: '16px',
+                        transition: 'all 0.3s ease-in-out',
+                        filter: 'drop-shadow(0 4px 12px rgba(255, 126, 0, 0.3))',
+                        '&:hover': {
+                          transform: 'scale(1.05) rotate(-2deg)',
+                          filter: 'drop-shadow(0 8px 20px rgba(255, 126, 0, 0.4))',
+                        },
+                      }}
+                    />
+                    <Typography
+                      variant="h4"
+                      sx={{ 
+                        fontWeight: 800,
+                        position: 'relative',
+                        textAlign: 'left',
+                        background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontSize: { xs: '1.8rem', sm: '2.2rem' },
+                        letterSpacing: '0.05em',
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          bottom: -4,
+                          left: 0,
+                          width: '100%',
+                          height: '2px',
+                          background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
+                          transform: 'scaleX(0.8)',
+                          transition: 'transform 0.3s ease',
+                        },
+                        '&:hover::after': {
+                          transform: 'scaleX(1)',
+                        },
+                      }}
+                    >
+                      SUMMER CAMPING 2025
+                    </Typography>
+                  </Box>
+                  <CountdownTimer />
+                </Toolbar>
+              </AppBar>
+
+              <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/house" element={<House />} />
+                  <Route path="/boat" element={<Boat />} />
+                  <Route path="/area" element={<Area />} />
+                  <Route path="/messages" element={<MessageBoard />} />
+                </Routes>
+              </Box>
+              <ScrollToTop />
             </Box>
-            <ScrollToTop />
           </Box>
         </Router>
       </AuthProvider>
