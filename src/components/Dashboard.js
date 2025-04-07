@@ -59,7 +59,9 @@ function Dashboard() {
                   justifyContent: 'center', 
                   alignItems: 'center', 
                   textAlign: 'center', 
-                  p: { xs: 2, sm: 4 }
+                  p: { xs: 2, sm: 4 },
+                  pt: { xs: section.comingSoon ? 5 : 2, sm: 4 },
+                  position: 'relative'
                 }}>
                   {section.comingSoon && (
                     <>
@@ -78,23 +80,24 @@ function Dashboard() {
                       <Box
                         sx={{
                           position: 'absolute',
-                          top: { xs: 16, sm: 20 },
-                          right: { xs: 16, sm: 20 },
+                          top: { xs: 8, sm: 16 },
+                          right: { xs: 8, sm: 16 },
                           background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 100%)',
                           borderRadius: '12px',
                           boxShadow: '0 4px 12px rgba(255, 126, 0, 0.3)',
-                          p: { xs: 1, sm: 1.25 },
+                          p: { xs: 0.75, sm: 1 },
                           display: 'flex',
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: 0.5,
+                          zIndex: 1
                         }}
                       >
                         <Typography
                           sx={{
                             color: 'white',
                             fontWeight: 'bold',
-                            fontSize: { xs: '0.9rem', sm: '1rem' },
+                            fontSize: { xs: '0.8rem', sm: '0.9rem' },
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',
                           }}
@@ -105,11 +108,13 @@ function Dashboard() {
                     </>
                   )}
                   <Box sx={{ 
-                    mb: { xs: 2, sm: 3 }, 
-                    color: section.comingSoon ? 'grey.500' : 'primary.main'
+                    mb: { xs: 1.5, sm: 3 }, 
+                    color: section.comingSoon ? 'grey.500' : 'primary.main',
+                    position: 'relative',
+                    zIndex: 1
                   }}>
                     <Icon sx={{ 
-                      fontSize: { xs: 48, sm: 72 } 
+                      fontSize: { xs: 40, sm: 72 } 
                     }} />
                   </Box>
                   <Typography 
@@ -118,8 +123,10 @@ function Dashboard() {
                     gutterBottom 
                     sx={{ 
                       color: section.comingSoon ? 'grey.500' : 'primary.main',
-                      mb: 2,
-                      fontSize: { xs: '1.75rem', sm: '2.125rem' }
+                      mb: 1,
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' },
+                      position: 'relative',
+                      zIndex: 1
                     }}
                   >
                     {section.title}
@@ -128,7 +135,9 @@ function Dashboard() {
                     variant="h6" 
                     color={section.comingSoon ? 'text.disabled' : 'text.secondary'}
                     sx={{
-                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                      fontSize: { xs: '0.9rem', sm: '1.25rem' },
+                      position: 'relative',
+                      zIndex: 1
                     }}
                   >
                     {section.description}

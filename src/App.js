@@ -1,6 +1,7 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, createTheme } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, Button, createTheme } from '@mui/material';
+import LogoutIcon from '@mui/icons-material/Logout';
 import House from './components/House';
 import Boat from './components/Boat';
 import Area from './components/Area';
@@ -8,7 +9,7 @@ import MessageBoard from './components/MessageBoard';
 import Dashboard from './components/Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 import CountdownTimer from './components/CountdownTimer';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AnimatedBackground = () => (
   <Box
@@ -223,133 +224,173 @@ const theme = createTheme({
   },
 });
 
+function AppContent() {
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  return (
+    <Router>
+      <Box sx={{ 
+        position: 'relative', 
+        minHeight: '100vh',
+        overflowX: 'hidden'
+      }}>
+        <AnimatedBackground />
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          minHeight: '100vh', 
+          position: 'relative', 
+          zIndex: 1,
+          maxWidth: '100vw'
+        }}>
+          <AppBar 
+            position="static" 
+            sx={{ 
+              bgcolor: 'transparent',
+              backgroundImage: 'linear-gradient(180deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(26, 26, 26, 0.4) 100%)',
+              borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
+              backdropFilter: 'blur(20px)',
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(90deg, rgba(255, 126, 0, 0) 0%, rgba(255, 126, 0, 0.1) 50%, rgba(255, 126, 0, 0) 100%)',
+                animation: 'shimmer 3s infinite',
+              },
+              '@keyframes shimmer': {
+                '0%': {
+                  transform: 'translateX(-100%)',
+                },
+                '100%': {
+                  transform: 'translateX(100%)',
+                },
+              },
+            }}
+          >
+            <Toolbar 
+              sx={{ 
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: { xs: 'center', sm: 'space-between' },
+                alignItems: 'center',
+                py: { xs: 2, sm: 2 },
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: 'center', 
+                gap: { xs: 1.5, sm: 3 },
+                justifyContent: 'center',
+              }}>
+                <Box
+                  component="img"
+                  src="/logo.png"
+                  alt="Summer Camping 2025"
+                  sx={{
+                    height: { xs: '75px', sm: '90px' },
+                    width: 'auto',
+                    borderRadius: '16px',
+                    transition: 'all 0.3s ease-in-out',
+                    filter: 'drop-shadow(0 4px 12px rgba(255, 126, 0, 0.3))',
+                    '&:hover': {
+                      transform: 'scale(1.05) rotate(-2deg)',
+                      filter: 'drop-shadow(0 8px 20px rgba(255, 126, 0, 0.4))',
+                    },
+                  }}
+                />
+                <Typography
+                  variant="h4"
+                  sx={{ 
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    fontSize: { xs: '1.8rem', sm: '2.2rem' },
+                    letterSpacing: '0.05em',
+                    textAlign: { xs: 'center', sm: 'left' },
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -4,
+                      left: 0,
+                      width: '100%',
+                      height: '2px',
+                      background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
+                      transform: 'scaleX(0.8)',
+                      transition: 'transform 0.3s ease',
+                    },
+                    '&:hover::after': {
+                      transform: 'scaleX(1)',
+                    },
+                  }}
+                >
+                  SUMMER CAMPING 2025
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <CountdownTimer />
+                {user && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleLogout}
+                    startIcon={<LogoutIcon />}
+                    sx={{
+                      ml: { xs: 0, sm: 2 },
+                      borderColor: 'rgba(255, 126, 0, 0.5)',
+                      color: '#FF7E00',
+                      '&:hover': {
+                        borderColor: '#FF7E00',
+                        background: 'rgba(255, 126, 0, 0.1)',
+                      },
+                    }}
+                  >
+                    Logout
+                  </Button>
+                )}
+              </Box>
+            </Toolbar>
+          </AppBar>
+
+          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/house" element={<House />} />
+              <Route path="/boat" element={<Boat />} />
+              <Route path="/area" element={<Area />} />
+              <Route path="/messages" element={<MessageBoard />} />
+            </Routes>
+          </Box>
+          <ScrollToTop />
+        </Box>
+      </Box>
+    </Router>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Box sx={{ 
-            position: 'relative', 
-            minHeight: '100vh',
-            overflowX: 'hidden'
-          }}>
-            <AnimatedBackground />
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              minHeight: '100vh', 
-              position: 'relative', 
-              zIndex: 1,
-              maxWidth: '100vw'
-            }}>
-              <AppBar 
-                position="static" 
-                sx={{ 
-                  bgcolor: 'transparent',
-                  backgroundImage: 'linear-gradient(180deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(26, 26, 26, 0.4) 100%)',
-                  borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
-                  backdropFilter: 'blur(20px)',
-                  position: 'relative',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(90deg, rgba(255, 126, 0, 0) 0%, rgba(255, 126, 0, 0.1) 50%, rgba(255, 126, 0, 0) 100%)',
-                    animation: 'shimmer 3s infinite',
-                  },
-                  '@keyframes shimmer': {
-                    '0%': {
-                      transform: 'translateX(-100%)',
-                    },
-                    '100%': {
-                      transform: 'translateX(100%)',
-                    },
-                  },
-                }}
-              >
-                <Toolbar 
-                  sx={{ 
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    justifyContent: { xs: 'center', sm: 'space-between' },
-                    alignItems: 'center',
-                    py: { xs: 2, sm: 2 },
-                    gap: { xs: 1.5, sm: 2 },
-                  }}
-                >
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: 'center', 
-                    gap: { xs: 1.5, sm: 3 },
-                    justifyContent: 'center',
-                  }}>
-                    <Box
-                      component="img"
-                      src="/logo.png"
-                      alt="Summer Camping 2025"
-                      sx={{
-                        height: { xs: '75px', sm: '90px' },
-                        width: 'auto',
-                        borderRadius: '16px',
-                        transition: 'all 0.3s ease-in-out',
-                        filter: 'drop-shadow(0 4px 12px rgba(255, 126, 0, 0.3))',
-                        '&:hover': {
-                          transform: 'scale(1.05) rotate(-2deg)',
-                          filter: 'drop-shadow(0 8px 20px rgba(255, 126, 0, 0.4))',
-                        },
-                      }}
-                    />
-                    <Typography
-                      variant="h4"
-                      sx={{ 
-                        fontWeight: 800,
-                        background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontSize: { xs: '1.8rem', sm: '2.2rem' },
-                        letterSpacing: '0.05em',
-                        textAlign: { xs: 'center', sm: 'left' },
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          bottom: -4,
-                          left: 0,
-                          width: '100%',
-                          height: '2px',
-                          background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
-                          transform: 'scaleX(0.8)',
-                          transition: 'transform 0.3s ease',
-                        },
-                        '&:hover::after': {
-                          transform: 'scaleX(1)',
-                        },
-                      }}
-                    >
-                      SUMMER CAMPING 2025
-                    </Typography>
-                  </Box>
-                  <CountdownTimer />
-                </Toolbar>
-              </AppBar>
-
-              <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/house" element={<House />} />
-                  <Route path="/boat" element={<Boat />} />
-                  <Route path="/area" element={<Area />} />
-                  <Route path="/messages" element={<MessageBoard />} />
-                </Routes>
-              </Box>
-              <ScrollToTop />
-            </Box>
-          </Box>
-        </Router>
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );

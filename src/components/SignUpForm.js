@@ -128,12 +128,12 @@ export default function SignUpForm({ onSignUp }) {
         sx={{ mb: 2 }}
       />
       <FormControl fullWidth sx={{ mb: 1 }}>
-        <InputLabel>Choose your username</InputLabel>
+        <InputLabel>Choose your identity</InputLabel>
         <Select
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
-          label="Choose your username"
+          label="Choose your identity"
         >
           {AVAILABLE_USERNAMES.map((name) => (
             <MenuItem
@@ -161,7 +161,7 @@ export default function SignUpForm({ onSignUp }) {
           fontWeight: 500
         }}
       >
-        ⚠️ WARNING: Once you select a username and create your account, this username will be permanently linked to your account and will no longer be available to other users.
+        ⚠️ WARNING: When you select an identity and create your account, the identity you choose will be permanently linked to your account, and will no longer be available to other users.
       </Typography>
       <Button
         type="submit"
