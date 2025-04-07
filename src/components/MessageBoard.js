@@ -17,10 +17,19 @@ import {
   Card,
   CardContent,
   Tab,
-  Tabs
+  Tabs,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import DeleteIcon from '@mui/icons-material/Delete';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,27 +47,39 @@ function MessageBoard() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+
+  // Check if user is admin based on their email
+  const isAdmin = user?.email === 'a.freed@outlook.com';
 
   const fetchMessages = async () => {
     try {
       setIsLoadingMessages(true);
-      setConnectionError(null);
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          *,
+          id,
+          content,
+          created_at,
+          is_deleted,
+          user_id,
           user:user_id (
             username
           )
         `)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        setConnectionError('Error connecting to the message board. Please try again later.');
-        return;
+      if (error) throw error;
+      
+      if (data) {
+        console.log('Fetched messages:', data.length);
+        setMessages(data);
       }
-      setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
       setConnectionError('Error connecting to the message board. Please try again later.');
@@ -67,40 +88,182 @@ function MessageBoard() {
     }
   };
 
-  useEffect(() => {
-    fetchMessages();
-
-    let messageChannel;
+  const deleteMessage = async (messageId) => {
     try {
-      messageChannel = supabase.channel('message-changes');
+      console.log('Attempting to delete message:', messageId);
       
-      messageChannel
+      // First verify we have permission to delete this message
+      const { data: message, error: fetchError } = await supabase
+        .from('messages')
+        .select('id, user_id, is_deleted')
+        .eq('id', messageId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching message:', fetchError);
+        throw fetchError;
+      }
+
+      if (!message) {
+        throw new Error('Message not found');
+      }
+
+      if (message.is_deleted) {
+        throw new Error('Message already deleted');
+      }
+
+      // Verify the user has permission to delete this message
+      if (!isAdmin && message.user_id !== user?.id) {
+        throw new Error('You do not have permission to delete this message');
+      }
+
+      // Soft delete the message
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_deleted: true })
+        .match({ id: messageId })
+        .select();
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+
+      // Update local state immediately
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      setConnectionError(null);
+      
+      console.log('Successfully deleted message:', messageId);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      setConnectionError('Failed to delete message. Please try again.');
+      throw error;
+    }
+  };
+
+  const deleteAllMessages = async () => {
+    if (!isAdmin) {
+      setConnectionError('Only administrators can delete all messages');
+      return;
+    }
+
+    try {
+      // Get all non-deleted message IDs first
+      const { data: messages, error: fetchError } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('is_deleted', false);
+
+      if (fetchError) throw fetchError;
+
+      if (!messages?.length) {
+        setDeleteAllDialogOpen(false);
+        return;
+      }
+
+      // Soft delete all messages
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_deleted: true })
+        .in('id', messages.map(msg => msg.id));
+
+      if (error) throw error;
+
+      // Clear local state
+      setMessages([]);
+    } catch (error) {
+      console.error('Error deleting all messages:', error);
+      setConnectionError('Failed to delete all messages. Please try again.');
+    } finally {
+      setDeleteAllDialogOpen(false);
+    }
+  };
+
+  // Message board UI handlers
+  const handleDeleteClick = (message) => {
+    setMessageToDelete(message);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!messageToDelete) return;
+    
+    try {
+      await deleteMessage(messageToDelete.id);
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    } catch (error) {
+      // Keep dialog open if there's an error
+      console.error('Error in delete confirmation:', error);
+    }
+  };
+
+  const handleDeleteAllClick = () => {
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleDeleteAllConfirm = async () => {
+    await deleteAllMessages();
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    let channel;
+
+    const initializeBoard = async () => {
+      if (!mounted) return;
+      
+      await fetchMessages();
+
+      // Set up real-time subscription with specific event filters
+      channel = supabase.channel('message-changes')
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'DELETE',
             schema: 'public',
             table: 'messages'
           },
-          () => {
-            fetchMessages();
+          (payload) => {
+            if (!mounted) return;
+            console.log('Received delete update:', payload);
+            if (payload.old?.id) {
+              setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+            }
           }
         )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to message changes');
-          } else {
-            console.warn('Subscription status:', status);
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => {
+            if (!mounted) return;
+            console.log('Received insert update:', payload);
+            if (payload.new) {
+              setMessages(prev => [payload.new, ...prev]);
+            }
           }
-        });
-    } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
-      setConnectionError('Error connecting to real-time updates. Messages may not update automatically.');
-    }
+        );
+
+      channel.subscribe((status, err) => {
+        if (!mounted) return;
+        console.log('Subscription status:', status);
+        if (err) {
+          console.error('Subscription error:', err);
+        }
+      });
+    };
+
+    initializeBoard();
 
     return () => {
-      if (messageChannel) {
-        messageChannel.unsubscribe();
+      mounted = false;
+      if (channel) {
+        console.log('Cleaning up subscription');
+        channel.unsubscribe();
       }
     };
   }, []);
@@ -132,13 +295,30 @@ function MessageBoard() {
         throw error;
       }
 
-      // Update messages state immediately
       setMessages(currentMessages => [data, ...currentMessages]);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
       setIsPosting(false);
+    }
+  };
+
+  const handleResetUsernames = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: null })
+        .neq('email', 'a.freed@outlook.com');
+
+      if (error) throw error;
+      
+      fetchMessages();
+    } catch (error) {
+      console.error('Error resetting usernames:', error);
+    } finally {
+      setResetDialogOpen(false);
+      setAnchorEl(null);
     }
   };
 
@@ -210,10 +390,134 @@ function MessageBoard() {
     </Card>
   );
 
+  // Update the admin menu section
+  const adminMenu = isAdmin && (
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <IconButton
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        color="primary"
+      >
+        <MoreVertIcon />
+      </IconButton>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        <MenuItem onClick={() => {
+          setResetDialogOpen(true);
+          setAnchorEl(null);
+        }}>
+          Reset All Usernames
+        </MenuItem>
+        <MenuItem onClick={() => {
+          handleDeleteAllClick();
+          setAnchorEl(null);
+        }}>
+          Delete All Messages
+        </MenuItem>
+      </Menu>
+    </Box>
+  );
+
+  // Update the message list section
+  const messageList = (
+    <List>
+      {messages.map((message, index) => (
+        <React.Fragment key={message.id}>
+          {index > 0 && <Divider component="li" />}
+          <ListItem alignItems="flex-start">
+            <ListItemAvatar>
+              <Avatar>{message.user?.username?.[0] || 'U'}</Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary={message.user?.username || 'Anonymous'}
+              secondary={
+                <>
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.primary"
+                    sx={{ display: 'block' }}
+                  >
+                    {message.content}
+                  </Typography>
+                  {new Date(message.created_at).toLocaleDateString()}
+                </>
+              }
+            />
+            {isAdmin && (
+              <IconButton
+                edge="end"
+                aria-label="delete"
+                onClick={() => handleDeleteClick(message)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </ListItem>
+        </React.Fragment>
+      ))}
+    </List>
+  );
+
+  // Update the dialogs section
+  const dialogs = (
+    <>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Message</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this message? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteAllDialogOpen}
+        onClose={() => setDeleteAllDialogOpen(false)}
+      >
+        <DialogTitle>Delete All Messages</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete all messages? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteAllConfirm} color="error">Delete All</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={resetDialogOpen}
+        onClose={() => setResetDialogOpen(false)}
+      >
+        <DialogTitle>Reset All Usernames</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will reset all usernames except for the administrator. Users will need to set new usernames when they next sign in. Are you sure you want to proceed?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleResetUsernames} color="primary">Reset</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {connectionError && (
-        <Paper sx={{ p: 2, mb: 3, bgcolor: 'error.main' }}>
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'error.dark' }}>
           <Typography color="white">
             {connectionError}
           </Typography>
@@ -248,69 +552,74 @@ function MessageBoard() {
         </Typography>
       </Box>
 
-      {!user ? renderAuthCard() : (
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
-              placeholder="Write your message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              sx={{ mb: 2 }}
-              disabled={isPosting}
-            />
-            <Button 
-              type="submit" 
-              variant="contained" 
-              color="primary"
-              disabled={!newMessage.trim() || isPosting}
-            >
-              {isPosting ? 'Posting...' : 'Post Message'}
-            </Button>
-          </Box>
-        </Paper>
+      {!user ? (
+        renderAuthCard()
+      ) : (
+        <>
+          {adminMenu}
+          <Paper sx={{ p: 3, mb: 4 }}>
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                placeholder="Write your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                disabled={isPosting}
+                sx={{ mb: 2 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={!newMessage.trim() || isPosting}
+              >
+                Post Message
+              </Button>
+            </Box>
+          </Paper>
+
+          {isLoadingMessages ? (
+            <Typography>Loading messages...</Typography>
+          ) : (
+            messageList
+          )}
+
+          <Dialog
+            open={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+          >
+            <DialogTitle>Delete Message</DialogTitle>
+            <DialogContent>
+              <Typography>
+                Are you sure you want to delete this message? This action cannot be undone.
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={deleteAllDialogOpen}
+            onClose={() => setDeleteAllDialogOpen(false)}
+          >
+            <DialogTitle>Delete All Messages</DialogTitle>
+            <DialogContent>
+              <Typography>
+                Are you sure you want to delete all messages? This action cannot be undone.
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleDeleteAllConfirm} color="error">Delete All</Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom color="primary">
-          Recent Messages
-        </Typography>
-        {isLoadingMessages ? (
-          <Typography>Loading messages...</Typography>
-        ) : (
-          <List>
-            {messages.map((message, index) => (
-              <React.Fragment key={message.id}>
-                {index > 0 && <Divider component="li" />}
-                <ListItem alignItems="flex-start">
-                  <ListItemAvatar>
-                    <Avatar>{message.user?.username?.[0] || 'U'}</Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={message.user?.username || 'Anonymous'}
-                    secondary={
-                      <>
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          color="text.primary"
-                          sx={{ display: 'block' }}
-                        >
-                          {message.content}
-                        </Typography>
-                        {new Date(message.created_at).toLocaleDateString()}
-                      </>
-                    }
-                  />
-                </ListItem>
-              </React.Fragment>
-            ))}
-          </List>
-        )}
-      </Paper>
+      {dialogs}
     </Container>
   );
 }
