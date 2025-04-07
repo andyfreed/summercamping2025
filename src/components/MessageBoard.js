@@ -306,16 +306,37 @@ function MessageBoard() {
 
   const handleResetUsernames = async () => {
     try {
-      const { error } = await supabase
+      // First update admin's username to "Storrow"
+      const { error: adminError } = await supabase
         .from('profiles')
-        .update({ username: null })
-        .neq('email', 'a.freed@outlook.com');
+        .update({ username: 'Storrow' })
+        .eq('id', user.id);
 
-      if (error) throw error;
+      if (adminError) throw adminError;
+
+      // Then get all non-admin profiles
+      const { data: profiles, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id')
+        .neq('id', user.id);
+
+      if (fetchError) throw fetchError;
+
+      if (profiles?.length) {
+        // Reset usernames for all non-admin profiles
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ username: null })
+          .in('id', profiles.map(profile => profile.id));
+
+        if (updateError) throw updateError;
+      }
       
-      fetchMessages();
+      await fetchMessages();
+      console.log('Successfully reset usernames');
     } catch (error) {
       console.error('Error resetting usernames:', error);
+      setConnectionError('Failed to reset usernames. Please try again.');
     } finally {
       setResetDialogOpen(false);
       setAnchorEl(null);

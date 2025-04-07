@@ -6,6 +6,7 @@ import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat';
 import TerrainIcon from '@mui/icons-material/Terrain';
 import ForumIcon from '@mui/icons-material/Forum';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import { useAuth } from '../contexts/AuthContext';
 
 const sections = [
   { title: 'THE HOUSE', icon: HomeIcon, path: '/house', description: 'House details' },
@@ -17,6 +18,8 @@ const sections = [
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'a.freed@outlook.com';
 
   return (
     <Container 
@@ -35,24 +38,25 @@ function Dashboard() {
       >
         {sections.map((section) => {
           const Icon = section.icon;
+          const isRestricted = section.comingSoon && !isAdmin;
           return (
             <Grid item xs={12} sm={6} key={section.title}>
               <Card
-                onClick={() => !section.comingSoon && navigate(section.path)}
+                onClick={() => !isRestricted && navigate(section.path)}
                 sx={{
                   height: { xs: '200px', sm: '280px' },
-                  cursor: section.comingSoon ? 'not-allowed' : 'pointer',
+                  cursor: isRestricted ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease-in-out',
-                  opacity: section.comingSoon ? 0.7 : 1,
+                  opacity: isRestricted ? 0.7 : 1,
                   position: 'relative',
                   '&:hover': {
-                    transform: section.comingSoon ? 'none' : 'translateY(-8px)',
-                    boxShadow: (theme) => section.comingSoon ? 'none' : `0 8px 24px ${theme.palette.primary.main}40`,
-                    borderColor: section.comingSoon ? 'grey.500' : 'primary.main',
+                    transform: isRestricted ? 'none' : 'translateY(-8px)',
+                    boxShadow: (theme) => isRestricted ? 'none' : `0 8px 24px ${theme.palette.primary.main}40`,
+                    borderColor: isRestricted ? 'grey.500' : 'primary.main',
                   },
                 }}
               >
-                <CardContent sx={{ 
+                <CardContent sx={{
                   height: '100%', 
                   display: 'flex', 
                   flexDirection: 'column', 
@@ -60,10 +64,10 @@ function Dashboard() {
                   alignItems: 'center', 
                   textAlign: 'center', 
                   p: { xs: 2, sm: 4 },
-                  pt: { xs: section.comingSoon ? 5 : 2, sm: 4 },
+                  pt: { xs: isRestricted ? 5 : 2, sm: 4 },
                   position: 'relative'
                 }}>
-                  {section.comingSoon && (
+                  {isRestricted && (
                     <>
                       <Box
                         sx={{
@@ -109,7 +113,7 @@ function Dashboard() {
                   )}
                   <Box sx={{ 
                     mb: { xs: 1.5, sm: 3 }, 
-                    color: section.comingSoon ? 'grey.500' : 'primary.main',
+                    color: isRestricted ? 'grey.500' : 'primary.main',
                     position: 'relative',
                     zIndex: 1
                   }}>
@@ -122,7 +126,7 @@ function Dashboard() {
                     component="h2" 
                     gutterBottom 
                     sx={{ 
-                      color: section.comingSoon ? 'grey.500' : 'primary.main',
+                      color: isRestricted ? 'grey.500' : 'primary.main',
                       mb: 1,
                       fontSize: { xs: '1.5rem', sm: '2.125rem' },
                       position: 'relative',
@@ -133,7 +137,7 @@ function Dashboard() {
                   </Typography>
                   <Typography 
                     variant="h6" 
-                    color={section.comingSoon ? 'text.disabled' : 'text.secondary'}
+                    color={isRestricted ? 'text.disabled' : 'text.secondary'}
                     sx={{
                       fontSize: { xs: '0.9rem', sm: '1.25rem' },
                       position: 'relative',

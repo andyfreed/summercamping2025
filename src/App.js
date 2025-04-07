@@ -1,7 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, Button, createTheme } from '@mui/material';
+import { 
+  ThemeProvider, 
+  CssBaseline, 
+  Box, 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  createTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Tab,
+  Tabs,
+  TextField,
+  IconButton,
+  Menu,
+  MenuItem
+} from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LoginIcon from '@mui/icons-material/Login';
 import House from './components/House';
 import Boat from './components/Boat';
 import Area from './components/Area';
@@ -10,6 +30,7 @@ import Dashboard from './components/Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 import CountdownTimer from './components/CountdownTimer';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import SignUpForm from './components/SignUpForm';
 
 const AnimatedBackground = () => (
   <Box
@@ -225,14 +246,46 @@ const theme = createTheme({
 });
 
 function AppContent() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, signIn } = useAuth();
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authTab, setAuthTab] = useState(0);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 
   const handleLogout = async () => {
     try {
       await signOut();
+      setUserMenuAnchor(null);
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const { error } = await signIn({
+        email,
+        password,
+      });
+      if (error) throw error;
+      setAuthDialogOpen(false);
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const handleUserMenuClick = (event) => {
+    setUserMenuAnchor(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
   };
 
   return (
@@ -281,34 +334,73 @@ function AppContent() {
           >
             <Toolbar 
               sx={{ 
-                display: 'flex',
+                position: 'relative',
                 flexDirection: { xs: 'column', sm: 'row' },
                 justifyContent: { xs: 'center', sm: 'space-between' },
                 alignItems: 'center',
-                py: { xs: 2, sm: 2 },
-                gap: { xs: 1.5, sm: 2 },
+                py: { xs: 2, sm: 1 },
+                gap: { xs: 2, sm: 0 }
               }}
             >
+              {/* Auth button for mobile - positioned absolutely */}
+              <Box
+                sx={{
+                  display: { xs: 'block', sm: 'none' },
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 2
+                }}
+              >
+                {user ? (
+                  <IconButton
+                    onClick={handleUserMenuClick}
+                    sx={{
+                      color: '#FF7E00',
+                      '&:hover': {
+                        background: 'rgba(255, 126, 0, 0.1)',
+                      },
+                    }}
+                  >
+                    <AccountCircleIcon />
+                  </IconButton>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    onClick={() => setAuthDialogOpen(true)}
+                    startIcon={<LoginIcon />}
+                    sx={{
+                      borderColor: 'rgba(255, 126, 0, 0.5)',
+                      color: '#FF7E00',
+                      '&:hover': {
+                        borderColor: '#FF7E00',
+                        background: 'rgba(255, 126, 0, 0.1)',
+                      },
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                )}
+              </Box>
+
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: 'center', 
-                gap: { xs: 1.5, sm: 3 },
-                justifyContent: 'center',
+                alignItems: 'center',
+                gap: { xs: 1, sm: 3 }
               }}>
                 <Box
                   component="img"
                   src="/logo.png"
-                  alt="Summer Camping 2025"
+                  alt="Logo"
                   sx={{
-                    height: { xs: '75px', sm: '90px' },
-                    width: 'auto',
-                    borderRadius: '16px',
-                    transition: 'all 0.3s ease-in-out',
-                    filter: 'drop-shadow(0 4px 12px rgba(255, 126, 0, 0.3))',
+                    width: { xs: '100px', sm: '120px' },
+                    height: 'auto',
+                    filter: 'drop-shadow(0 0 10px rgba(255, 126, 0, 0.3))',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      transform: 'scale(1.05) rotate(-2deg)',
-                      filter: 'drop-shadow(0 8px 20px rgba(255, 126, 0, 0.4))',
+                      filter: 'drop-shadow(0 0 15px rgba(255, 126, 0, 0.5))',
+                      transform: 'scale(1.05)',
                     },
                   }}
                 />
@@ -321,7 +413,8 @@ function AppContent() {
                     WebkitTextFillColor: 'transparent',
                     fontSize: { xs: '1.8rem', sm: '2.2rem' },
                     letterSpacing: '0.05em',
-                    textAlign: { xs: 'center', sm: 'left' },
+                    textAlign: 'center',
+                    position: 'relative',
                     '&::after': {
                       content: '""',
                       position: 'absolute',
@@ -343,30 +436,64 @@ function AppContent() {
               </Box>
               <Box sx={{ 
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: 'center',
-                gap: 2
+                gap: { xs: 1, sm: 2 }
               }}>
                 <CountdownTimer />
-                {user && (
-                  <Button
-                    variant="outlined"
-                    onClick={handleLogout}
-                    startIcon={<LogoutIcon />}
-                    sx={{
-                      ml: { xs: 0, sm: 2 },
-                      borderColor: 'rgba(255, 126, 0, 0.5)',
-                      color: '#FF7E00',
-                      '&:hover': {
-                        borderColor: '#FF7E00',
-                        background: 'rgba(255, 126, 0, 0.1)',
-                      },
-                    }}
-                  >
-                    Logout
-                  </Button>
-                )}
+                {/* Auth button for desktop */}
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  {user ? (
+                    <>
+                      <IconButton
+                        onClick={handleUserMenuClick}
+                        sx={{
+                          color: '#FF7E00',
+                          '&:hover': {
+                            background: 'rgba(255, 126, 0, 0.1)',
+                          },
+                        }}
+                      >
+                        <AccountCircleIcon />
+                      </IconButton>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      onClick={() => setAuthDialogOpen(true)}
+                      startIcon={<LoginIcon />}
+                      sx={{
+                        borderColor: 'rgba(255, 126, 0, 0.5)',
+                        color: '#FF7E00',
+                        '&:hover': {
+                          borderColor: '#FF7E00',
+                          background: 'rgba(255, 126, 0, 0.1)',
+                        },
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Toolbar>
+            {user && (
+              <Menu
+                anchorEl={userMenuAnchor}
+                open={Boolean(userMenuAnchor)}
+                onClose={handleUserMenuClose}
+              >
+                <MenuItem disabled>
+                  <Typography variant="body2" color="textSecondary">
+                    Signed in as {user?.email}
+                  </Typography>
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>
+                  <LogoutIcon sx={{ mr: 1 }} />
+                  Sign Out
+                </MenuItem>
+              </Menu>
+            )}
           </AppBar>
 
           <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
@@ -381,6 +508,62 @@ function AppContent() {
           <ScrollToTop />
         </Box>
       </Box>
+
+      <Dialog
+        open={authDialogOpen}
+        onClose={() => setAuthDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Tabs value={authTab} onChange={(e, newValue) => setAuthTab(newValue)}>
+            <Tab label="Sign In" />
+            <Tab label="Sign Up" />
+          </Tabs>
+        </DialogTitle>
+        <DialogContent>
+          {authTab === 0 ? (
+            <Box component="form" onSubmit={handleSignIn} sx={{ mt: 2 }}>
+              {error && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                  {error}
+                </Typography>
+              )}
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                sx={{ mb: 2 }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={!email || !password}
+              >
+                Sign In
+              </Button>
+            </Box>
+          ) : (
+            <SignUpForm onSignUp={() => {
+              setAuthDialogOpen(false);
+              setAuthTab(0);
+            }} />
+          )}
+        </DialogContent>
+      </Dialog>
     </Router>
   );
 }
