@@ -23,6 +23,8 @@ jobs:
         env:
           PUBLIC_URL: https://summercamping2025.com
           NODE_OPTIONS: --openssl-legacy-provider
+          REACT_APP_SUPABASE_URL: ${{ secrets.REACT_APP_SUPABASE_URL }}
+          REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Check DNS
