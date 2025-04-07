@@ -17,8 +17,20 @@ function Dashboard() {
   const navigate = useNavigate();
 
   return (
-    <Container maxWidth="lg" sx={{ height: 'calc(100vh - 88px)', display: 'flex', alignItems: 'center' }}>
-      <Grid container spacing={4} justifyContent="center">
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        minHeight: { xs: 'auto', sm: 'calc(100vh - 88px)' },
+        py: { xs: 2, sm: 4 },
+        display: 'flex',
+        alignItems: { xs: 'flex-start', sm: 'center' }
+      }}
+    >
+      <Grid 
+        container 
+        spacing={{ xs: 2, sm: 4 }} 
+        justifyContent="center"
+      >
         {sections.map((section) => {
           const Icon = section.icon;
           return (
@@ -26,7 +38,7 @@ function Dashboard() {
               <Card
                 onClick={() => navigate(section.path)}
                 sx={{
-                  height: '280px',
+                  height: { xs: '200px', sm: '280px' },
                   cursor: 'pointer',
                   transition: 'all 0.3s ease-in-out',
                   '&:hover': {
@@ -43,15 +55,35 @@ function Dashboard() {
                   justifyContent: 'center', 
                   alignItems: 'center', 
                   textAlign: 'center', 
-                  p: 4 
+                  p: { xs: 2, sm: 4 }
                 }}>
-                  <Box sx={{ mb: 3, color: 'primary.main' }}>
-                    <Icon sx={{ fontSize: 72 }} />
+                  <Box sx={{ 
+                    mb: { xs: 2, sm: 3 }, 
+                    color: 'primary.main' 
+                  }}>
+                    <Icon sx={{ 
+                      fontSize: { xs: 48, sm: 72 } 
+                    }} />
                   </Box>
-                  <Typography variant="h4" component="h2" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+                  <Typography 
+                    variant="h4" 
+                    component="h2" 
+                    gutterBottom 
+                    sx={{ 
+                      color: 'primary.main', 
+                      mb: 2,
+                      fontSize: { xs: '1.75rem', sm: '2.125rem' }
+                    }}
+                  >
                     {section.title}
                   </Typography>
-                  <Typography variant="h6" color="text.secondary">
+                  <Typography 
+                    variant="h6" 
+                    color="text.secondary"
+                    sx={{
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}
+                  >
                     {section.description}
                   </Typography>
                 </CardContent>
