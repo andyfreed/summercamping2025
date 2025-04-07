@@ -37,10 +37,12 @@ function MessageBoard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [connectionError, setConnectionError] = useState(null);
 
   const fetchMessages = async () => {
     try {
       setIsLoadingMessages(true);
+      setConnectionError(null);
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -53,11 +55,13 @@ function MessageBoard() {
 
       if (error) {
         console.error('Error fetching messages:', error);
+        setConnectionError('Error connecting to the message board. Please try again later.');
         return;
       }
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      setConnectionError('Error connecting to the message board. Please try again later.');
     } finally {
       setIsLoadingMessages(false);
     }
@@ -66,24 +70,38 @@ function MessageBoard() {
   useEffect(() => {
     fetchMessages();
 
-    // Set up real-time subscription
-    const messageChannel = supabase
-      .channel('message-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        () => {
-          fetchMessages();
-        }
-      )
-      .subscribe();
+    let messageChannel;
+    try {
+      messageChannel = supabase.channel('message-changes');
+      
+      messageChannel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages'
+          },
+          () => {
+            fetchMessages();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to message changes');
+          } else {
+            console.warn('Subscription status:', status);
+          }
+        });
+    } catch (error) {
+      console.error('Error setting up real-time subscription:', error);
+      setConnectionError('Error connecting to real-time updates. Messages may not update automatically.');
+    }
 
     return () => {
-      messageChannel.unsubscribe();
+      if (messageChannel) {
+        messageChannel.unsubscribe();
+      }
     };
   }, []);
 
@@ -194,6 +212,14 @@ function MessageBoard() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {connectionError && (
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'error.main' }}>
+          <Typography color="white">
+            {connectionError}
+          </Typography>
+        </Paper>
+      )}
+      
       <Breadcrumbs 
         separator={<NavigateNextIcon fontSize="small" />} 
         aria-label="breadcrumb"
