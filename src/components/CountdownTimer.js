@@ -63,10 +63,10 @@ function CountdownTimer() {
         const months = Math.floor((days % 365) / 30);
         const weeks = Math.floor(((days % 365) % 30) / 7);
 
-        // Calculate percentage of 2024 complete
-        const startOf2024 = new Date('2024-01-01T00:00:00');
-        const endOf2024 = new Date('2024-12-31T23:59:59');
-        const percentComplete = ((now - startOf2024) / (endOf2024 - startOf2024)) * 100;
+        // Calculate percentage of 2025 complete
+        const startOf2025 = new Date('2025-01-01T00:00:00');
+        const endOf2025 = new Date('2025-12-31T23:59:59');
+        const percentComplete = ((now - startOf2025) / (endOf2025 - startOf2025)) * 100;
 
         setTimeLeft({
           days,
