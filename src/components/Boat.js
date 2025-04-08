@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Container, Typography, Paper, Breadcrumbs, Link, Card, CardContent, Grid, Button } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -81,6 +81,7 @@ function Boat() {
             transition: 'opacity 1s ease',
           }}
         >
+          <source src="/videos/boat-video.mov" type="video/quicktime" />
           <source src="/videos/boat-video.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </Box>
