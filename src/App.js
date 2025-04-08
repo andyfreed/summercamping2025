@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { 
   ThemeProvider, 
   CssBaseline, 
@@ -389,50 +389,56 @@ function AppContent() {
                 alignItems: 'center',
                 gap: { xs: 1, sm: 3 }
               }}>
-                <Box
-                  component="img"
-                  src="/logo.png"
-                  alt="Logo"
-                  sx={{
-                    width: { xs: '100px', sm: '120px' },
-                    height: 'auto',
-                    filter: 'drop-shadow(0 0 10px rgba(255, 126, 0, 0.3))',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      filter: 'drop-shadow(0 0 15px rgba(255, 126, 0, 0.5))',
-                      transform: 'scale(1.05)',
-                    },
-                  }}
-                />
-                <Typography
-                  variant="h4"
-                  sx={{ 
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    fontSize: { xs: '1.8rem', sm: '2.2rem' },
-                    letterSpacing: '0.05em',
-                    textAlign: 'center',
-                    position: 'relative',
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -4,
-                      left: 0,
-                      width: '100%',
-                      height: '2px',
-                      background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
-                      transform: 'scaleX(0.8)',
-                      transition: 'transform 0.3s ease',
-                    },
-                    '&:hover::after': {
-                      transform: 'scaleX(1)',
-                    },
-                  }}
-                >
-                  SUMMER CAMPING 2025
-                </Typography>
+                <Link to="/" style={{ textDecoration: 'none' }}>
+                  <Box
+                    component="img"
+                    src="/logo.png"
+                    alt="Logo"
+                    sx={{
+                      width: { xs: '100px', sm: '120px' },
+                      height: 'auto',
+                      filter: 'drop-shadow(0 0 10px rgba(255, 126, 0, 0.3))',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        filter: 'drop-shadow(0 0 15px rgba(255, 126, 0, 0.5))',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                  />
+                </Link>
+                <Link to="/" style={{ textDecoration: 'none' }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ 
+                      fontWeight: 800,
+                      background: 'linear-gradient(135deg, #FF7E00 0%, #FFA040 50%, #FF4000 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontSize: { xs: '1.8rem', sm: '2.2rem' },
+                      letterSpacing: '0.05em',
+                      textAlign: 'center',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -4,
+                        left: 0,
+                        width: '100%',
+                        height: '2px',
+                        background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
+                        transform: 'scaleX(0.8)',
+                        transition: 'transform 0.3s ease',
+                      },
+                      '&:hover::after': {
+                        transform: 'scaleX(1)',
+                      },
+                    }}
+                  >
+                    SUMMER CAMPING 2025
+                  </Typography>
+                </Link>
               </Box>
               <Box sx={{ 
                 display: 'flex',
