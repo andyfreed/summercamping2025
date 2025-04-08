@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   ThemeProvider, 
   CssBaseline, 
@@ -19,6 +19,8 @@ import {
   Menu,
   MenuItem
 } from '@mui/material';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LoginIcon from '@mui/icons-material/Login';
@@ -32,7 +34,7 @@ import CountdownTimer from './components/CountdownTimer';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SignUpForm from './components/SignUpForm';
 
-const AnimatedBackground = () => (
+const AnimatedBackground = ({ mode }) => (
   <Box
     sx={{
       position: 'fixed',
@@ -52,13 +54,17 @@ const AnimatedBackground = () => (
         transformOrigin: 'center center',
       },
       '&::before': {
-        background: 'rgba(255, 126, 0, 0.1)',
+        background: mode === 'dark' 
+          ? 'rgba(255, 126, 0, 0.1)' 
+          : 'rgba(255, 126, 0, 0.05)',
         left: '-50%',
         top: '-50%',
         animationDelay: '-7s',
       },
       '&::after': {
-        background: 'rgba(0, 128, 128, 0.1)',
+        background: mode === 'dark' 
+          ? 'rgba(0, 128, 128, 0.1)' 
+          : 'rgba(0, 128, 128, 0.05)',
         right: '-50%',
         bottom: '-50%',
       },
@@ -74,178 +80,7 @@ const AnimatedBackground = () => (
   />
 );
 
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#FF7E00',
-      light: '#FFA040',
-      dark: '#CC6500',
-      contrastText: '#000000',
-    },
-    secondary: {
-      main: '#008080',
-      light: '#40A0A0',
-      dark: '#006666',
-      contrastText: '#ffffff',
-    },
-    background: {
-      default: '#1A1A1A',
-      paper: 'rgba(26, 26, 26, 0.7)',
-    },
-    text: {
-      primary: '#F5E6D3',
-      secondary: 'rgba(245, 230, 211, 0.7)',
-    },
-    error: {
-      main: '#ff4444',
-    },
-    warning: {
-      main: '#ff9800',
-    },
-    success: {
-      main: '#4caf50',
-    },
-  },
-  typography: {
-    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      fontWeight: 700,
-    },
-    h2: {
-      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      fontWeight: 600,
-    },
-    h3: {
-      background: 'linear-gradient(45deg, #FF7E00, #FF4000)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      fontWeight: 600,
-    },
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          background: '#1A1A1A',
-          minHeight: '100vh',
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          background: 'rgba(26, 26, 26, 0.5)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255, 126, 0, 0.1)',
-          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: '0 8px 40px rgba(255, 126, 0, 0.2)',
-            border: '1px solid rgba(255, 126, 0, 0.3)',
-          },
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: '24px',
-            background: 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))',
-            mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            maskComposite: 'exclude',
-            padding: '1px',
-            pointerEvents: 'none',
-          },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          background: 'rgba(26, 26, 26, 0.7)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
-          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
-        },
-      },
-    },
-    MuiFab: {
-      styleOverrides: {
-        root: {
-          background: 'linear-gradient(45deg, #FF7E00, #008080)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#ffffff',
-          '&:hover': {
-            background: 'linear-gradient(45deg, #008080, #FF7E00)',
-          },
-        },
-      },
-    },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: '12px',
-          textTransform: 'none',
-          fontWeight: 500,
-          backdropFilter: 'blur(20px)',
-        },
-        contained: {
-          background: 'linear-gradient(45deg, #FF7E00, #008080)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#ffffff',
-          '&:hover': {
-            background: 'linear-gradient(45deg, #008080, #FF7E00)',
-          },
-        },
-        outlined: {
-          borderColor: '#FF7E00',
-          color: '#FF7E00',
-          '&:hover': {
-            borderColor: '#008080',
-            color: '#008080',
-            background: 'rgba(0, 128, 128, 0.1)',
-          },
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          background: 'rgba(26, 26, 26, 0.5)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255, 126, 0, 0.1)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: '24px',
-            background: 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))',
-            mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            maskComposite: 'exclude',
-            padding: '1px',
-            pointerEvents: 'none',
-          },
-        },
-      },
-    },
-  },
-});
-
-function AppContent() {
+function AppContent({ colorMode, mode }) {
   const { user, signOut, signIn } = useAuth();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authTab, setAuthTab] = useState(0);
@@ -253,6 +88,93 @@ function AppContent() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+
+  // Navigation link component that shows active state
+  const NavLink = ({ to, children }) => {
+    const location = useLocation();
+    const isActive = location.pathname === to;
+    
+    return (
+      <Link to={to} style={{ textDecoration: 'none' }}>
+        <Typography 
+          sx={{ 
+            color: isActive 
+              ? '#FF7E00' 
+              : mode === 'dark' ? '#F5E6D3' : '#333333',
+            fontWeight: isActive ? 700 : 500,
+            px: 1.5,
+            py: 0.7,
+            borderRadius: 1.5,
+            position: 'relative',
+            transition: 'all 0.2s ease',
+            '&::after': isActive ? {
+              content: '""',
+              position: 'absolute',
+              bottom: 0,
+              left: '10%',
+              width: '80%',
+              height: '2px',
+              background: 'linear-gradient(90deg, transparent, #FF7E00, transparent)',
+            } : {},
+            '&:hover': {
+              backgroundColor: mode === 'dark'
+                ? 'rgba(255, 126, 0, 0.1)'
+                : 'rgba(255, 126, 0, 0.2)',
+              transform: 'translateY(-2px)',
+              color: isActive 
+                ? '#FF7E00' 
+                : mode === 'dark' ? '#FFA040' : '#CC6500',
+            }
+          }}
+        >
+          {children}
+        </Typography>
+      </Link>
+    );
+  };
+
+  // Navigation menu component
+  const NavigationMenu = () => {
+    const location = useLocation();
+    const isHomePage = location.pathname === "/";
+    
+    // Don't render the navigation menu on the homepage
+    if (isHomePage) return null;
+    
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex',
+          justifyContent: 'center',
+          backgroundColor: mode === 'dark'
+            ? 'rgba(26, 26, 26, 0.4)'
+            : 'rgba(245, 245, 245, 0.4)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+          py: 1,
+          px: 2,
+          borderBottom: mode === 'dark'
+            ? '1px solid rgba(255, 126, 0, 0.1)'
+            : '1px solid rgba(204, 101, 0, 0.1)',
+        }}
+      >
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: { xs: 1, sm: 3 }
+          }}
+        >
+          <NavLink to="/">Dashboard</NavLink>
+          <NavLink to="/house">House</NavLink>
+          <NavLink to="/boat">Boat</NavLink>
+          <NavLink to="/area">Area</NavLink>
+          <NavLink to="/messages">Message Board</NavLink>
+        </Box>
+      </Box>
+    );
+  };
 
   const handleLogout = async () => {
     try {
@@ -295,7 +217,7 @@ function AppContent() {
         minHeight: '100vh',
         overflowX: 'hidden'
       }}>
-        <AnimatedBackground />
+        <AnimatedBackground mode={mode} />
         <Box sx={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -308,8 +230,12 @@ function AppContent() {
             position="static" 
             sx={{ 
               bgcolor: 'transparent',
-              backgroundImage: 'linear-gradient(180deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(26, 26, 26, 0.4) 100%)',
-              borderBottom: '1px solid rgba(255, 126, 0, 0.2)',
+              backgroundImage: mode === 'dark'
+                ? 'linear-gradient(180deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 50%, rgba(26, 26, 26, 0.4) 100%)'
+                : 'linear-gradient(180deg, rgba(245, 245, 245, 0.9) 0%, rgba(245, 245, 245, 0.7) 50%, rgba(245, 245, 245, 0.4) 100%)',
+              borderBottom: mode === 'dark'
+                ? '1px solid rgba(255, 126, 0, 0.2)'
+                : '1px solid rgba(204, 101, 0, 0.2)',
               backdropFilter: 'blur(20px)',
               position: 'relative',
               '&::before': {
@@ -319,7 +245,9 @@ function AppContent() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: 'linear-gradient(90deg, rgba(255, 126, 0, 0) 0%, rgba(255, 126, 0, 0.1) 50%, rgba(255, 126, 0, 0) 100%)',
+                background: mode === 'dark'
+                  ? 'linear-gradient(90deg, rgba(255, 126, 0, 0) 0%, rgba(255, 126, 0, 0.1) 50%, rgba(255, 126, 0, 0) 100%)'
+                  : 'linear-gradient(90deg, rgba(204, 101, 0, 0) 0%, rgba(204, 101, 0, 0.1) 50%, rgba(204, 101, 0, 0) 100%)',
                 animation: 'shimmer 3s infinite',
               },
               '@keyframes shimmer': {
@@ -447,6 +375,23 @@ function AppContent() {
                 gap: { xs: 1, sm: 2 }
               }}>
                 <CountdownTimer />
+                
+                {/* Theme toggle */}
+                <IconButton 
+                  onClick={colorMode.toggleColorMode} 
+                  color="inherit"
+                  sx={{
+                    color: mode === 'dark' ? '#FFA040' : '#CC6500',
+                    '&:hover': {
+                      backgroundColor: mode === 'dark' 
+                        ? 'rgba(255, 126, 0, 0.1)' 
+                        : 'rgba(255, 126, 0, 0.2)',
+                    },
+                  }}
+                >
+                  {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+                
                 {/* Auth button for desktop */}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                   {user ? (
@@ -501,6 +446,8 @@ function AppContent() {
               </Menu>
             )}
           </AppBar>
+
+          <NavigationMenu />
 
           <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
             <Routes>
@@ -575,11 +522,239 @@ function AppContent() {
 }
 
 function App() {
+  const [mode, setMode] = useState('dark');
+  
+  // Update the theme only if the mode changes
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          ...(mode === 'dark' 
+            ? {
+                // Dark mode colors
+                primary: {
+                  main: '#FF7E00',
+                  light: '#FFA040',
+                  dark: '#CC6500',
+                  contrastText: '#000000',
+                },
+                secondary: {
+                  main: '#008080',
+                  light: '#40A0A0',
+                  dark: '#006666',
+                  contrastText: '#ffffff',
+                },
+                background: {
+                  default: '#1A1A1A',
+                  paper: 'rgba(26, 26, 26, 0.7)',
+                },
+                text: {
+                  primary: '#F5E6D3',
+                  secondary: 'rgba(245, 230, 211, 0.7)',
+                },
+              }
+            : {
+                // Light mode colors
+                primary: {
+                  main: '#FF7E00',
+                  light: '#FFA040',
+                  dark: '#CC6500',
+                  contrastText: '#FFFFFF',
+                },
+                secondary: {
+                  main: '#008080',
+                  light: '#40A0A0',
+                  dark: '#006666',
+                  contrastText: '#000000',
+                },
+                background: {
+                  default: '#F5F5F5',
+                  paper: 'rgba(255, 255, 255, 0.9)',
+                },
+                text: {
+                  primary: '#333333',
+                  secondary: 'rgba(0, 0, 0, 0.7)',
+                },
+              }),
+        },
+        typography: {
+          fontFamily: '"Lohit Devanagari", "Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+          h1: {
+            background: mode === 'dark' 
+              ? 'linear-gradient(45deg, #FF7E00, #FF4000)'
+              : 'linear-gradient(45deg, #CC6500, #FF7E00)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 700,
+          },
+          h2: {
+            background: mode === 'dark' 
+              ? 'linear-gradient(45deg, #FF7E00, #FF4000)'
+              : 'linear-gradient(45deg, #CC6500, #FF7E00)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 600,
+          },
+          h3: {
+            background: mode === 'dark' 
+              ? 'linear-gradient(45deg, #FF7E00, #FF4000)'
+              : 'linear-gradient(45deg, #CC6500, #FF7E00)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 600,
+          },
+        },
+        components: {
+          MuiCssBaseline: {
+            styleOverrides: {
+              body: {
+                background: mode === 'dark' ? '#1A1A1A' : '#F5F5F5',
+                minHeight: '100vh',
+              },
+            },
+          },
+          MuiAppBar: {
+            styleOverrides: {
+              root: {
+                background: mode === 'dark' 
+                  ? 'rgba(26, 26, 26, 0.7)'
+                  : 'rgba(245, 245, 245, 0.7)',
+                backdropFilter: 'blur(20px)',
+                borderBottom: mode === 'dark'
+                  ? '1px solid rgba(255, 126, 0, 0.2)'
+                  : '1px solid rgba(204, 101, 0, 0.2)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
+              },
+            },
+          },
+          MuiFab: {
+            styleOverrides: {
+              root: {
+                background: 'linear-gradient(45deg, #FF7E00, #008080)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #008080, #FF7E00)',
+                },
+              },
+            },
+          },
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 500,
+                backdropFilter: 'blur(20px)',
+              },
+              contained: {
+                background: 'linear-gradient(45deg, #FF7E00, #008080)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #008080, #FF7E00)',
+                },
+              },
+              outlined: {
+                borderColor: '#FF7E00',
+                color: '#FF7E00',
+                '&:hover': {
+                  borderColor: '#008080',
+                  color: '#008080',
+                  background: 'rgba(0, 128, 128, 0.1)',
+                },
+              },
+            },
+          },
+          MuiPaper: {
+            styleOverrides: {
+              root: {
+                background: mode === 'dark'
+                  ? 'rgba(26, 26, 26, 0.5)'
+                  : 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '24px',
+                border: mode === 'dark'
+                  ? '1px solid rgba(255, 126, 0, 0.1)'
+                  : '1px solid rgba(204, 101, 0, 0.1)',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: '24px',
+                  background: mode === 'dark'
+                    ? 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))'
+                    : 'linear-gradient(45deg, rgba(204, 101, 0, 0.1), rgba(0, 101, 102, 0.1))',
+                  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  maskComposite: 'exclude',
+                  padding: '1px',
+                  pointerEvents: 'none',
+                },
+              },
+            },
+          },
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                background: mode === 'dark'
+                  ? 'rgba(26, 26, 26, 0.5)'
+                  : 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '24px',
+                border: mode === 'dark'
+                  ? '1px solid rgba(255, 126, 0, 0.1)'
+                  : '1px solid rgba(204, 101, 0, 0.1)',
+                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: mode === 'dark'
+                    ? '0 8px 40px rgba(255, 126, 0, 0.2)'
+                    : '0 8px 40px rgba(204, 101, 0, 0.2)',
+                  border: mode === 'dark'
+                    ? '1px solid rgba(255, 126, 0, 0.3)'
+                    : '1px solid rgba(204, 101, 0, 0.3)',
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: '24px',
+                  background: mode === 'dark'
+                    ? 'linear-gradient(45deg, rgba(255, 126, 0, 0.1), rgba(0, 128, 128, 0.1))'
+                    : 'linear-gradient(45deg, rgba(204, 101, 0, 0.1), rgba(0, 101, 102, 0.1))',
+                  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  maskComposite: 'exclude',
+                  padding: '1px',
+                  pointerEvents: 'none',
+                },
+              },
+            },
+          },
+        },
+      }),
+    [mode],
+  );
+
+  const colorMode = {
+    toggleColorMode: () => {
+      setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+    },
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <AppContent />
+        <AppContent colorMode={colorMode} mode={mode} />
       </AuthProvider>
     </ThemeProvider>
   );
