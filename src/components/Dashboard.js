@@ -9,11 +9,18 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { useAuth } from '../contexts/AuthContext';
 
 const sections = [
-  { title: 'THE HOUSE', icon: HomeIcon, path: '/house', description: 'House details' },
-  { title: 'THE BOAT', icon: DirectionsBoatIcon, path: '/boat', description: 'Boat information', comingSoon: true },
-  { title: 'THE AREA', icon: TerrainIcon, path: '/area', description: 'The area sucks' },
-  { title: 'MESSAGE BOARD', icon: ForumIcon, path: '/messages', description: 'Community updates and discussions' },
-  { title: 'FOOD & BEVERAGE', icon: RestaurantIcon, path: '/food', description: 'Food and Beverage Planning and Management System', comingSoon: true }
+  { title: 'THE HOUSE', icon: HomeIcon, path: '/house' },
+  { 
+    title: 'THE BOAT', 
+    icon: DirectionsBoatIcon, 
+    path: '/boat', 
+    comingSoon: true,
+    hasVideo: true,
+    videoSrc: "/videos/boat.mov"
+  },
+  { title: 'THE AREA', icon: TerrainIcon, path: '/area' },
+  { title: 'MESSAGE BOARD', icon: ForumIcon, path: '/messages' },
+  { title: 'FOOD & BEVERAGE', icon: RestaurantIcon, path: '/food', comingSoon: true }
 ];
 
 function Dashboard() {
@@ -49,6 +56,7 @@ function Dashboard() {
                   transition: 'all 0.3s ease-in-out',
                   opacity: isRestricted ? 0.7 : 1,
                   position: 'relative',
+                  overflow: 'hidden', // Ensure the video stays within the card bounds
                   '&:hover': {
                     transform: isRestricted ? 'none' : 'translateY(-8px)',
                     boxShadow: (theme) => isRestricted ? 'none' : `0 8px 24px ${theme.palette.primary.main}40`,
@@ -56,6 +64,28 @@ function Dashboard() {
                   },
                 }}
               >
+                {section.hasVideo && (
+                  <Box
+                    component="video"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    sx={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                      opacity: 0.4, // Set opacity so text is visible
+                      zIndex: 0, // Behind the content
+                    }}
+                  >
+                    <source src={section.videoSrc} type="video/mp4" />
+                    <source src={section.videoSrc} type="video/quicktime" />
+                    Your browser does not support the video tag.
+                  </Box>
+                )}
                 <CardContent sx={{
                   height: '100%', 
                   display: 'flex', 
@@ -78,7 +108,8 @@ function Dashboard() {
                           height: '100%',
                           background: 'linear-gradient(135deg, transparent 0%, rgba(255, 126, 0, 0.05) 100%)',
                           borderRadius: 'inherit',
-                          pointerEvents: 'none'
+                          pointerEvents: 'none',
+                          zIndex: 1 // Above the video but below the content
                         }}
                       />
                       <Box
@@ -94,7 +125,7 @@ function Dashboard() {
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: 0.5,
-                          zIndex: 1
+                          zIndex: 2 // Above the gradient
                         }}
                       >
                         <Typography
@@ -115,7 +146,10 @@ function Dashboard() {
                     mb: { xs: 1.5, sm: 3 }, 
                     color: isRestricted ? 'grey.500' : 'primary.main',
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 2, // Above the video
+                    backgroundColor: section.hasVideo ? 'rgba(0, 0, 0, 0.3)' : 'transparent',
+                    p: section.hasVideo ? 1 : 0,
+                    borderRadius: '50%'
                   }}>
                     <Icon sx={{ 
                       fontSize: { xs: 40, sm: 72 } 
@@ -130,21 +164,11 @@ function Dashboard() {
                       mb: 1,
                       fontSize: { xs: '1.5rem', sm: '2.125rem' },
                       position: 'relative',
-                      zIndex: 1
+                      zIndex: 2, // Above the video
+                      textShadow: section.hasVideo ? '0 0 10px rgba(0,0,0,0.5)' : 'none'
                     }}
                   >
                     {section.title}
-                  </Typography>
-                  <Typography 
-                    variant="h6" 
-                    color={isRestricted ? 'text.disabled' : 'text.secondary'}
-                    sx={{
-                      fontSize: { xs: '0.9rem', sm: '1.25rem' },
-                      position: 'relative',
-                      zIndex: 1
-                    }}
-                  >
-                    {section.description}
                   </Typography>
                 </CardContent>
               </Card>
