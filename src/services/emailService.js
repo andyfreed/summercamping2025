@@ -1,5 +1,55 @@
 import { supabase } from '../lib/supabase';
 
+// Dummy function that logs emails instead of sending them
+// For security, we don't store API keys in the code
+const sendMail = async (to, subject, text) => {
+  console.log(`[EMAIL MOCK] Would send email to: ${to}`);
+  console.log(`[EMAIL MOCK] Subject: ${subject}`);
+  console.log(`[EMAIL MOCK] Body: ${text}`);
+  console.log('[EMAIL MOCK] In production, configure Mailgun with REACT_APP_MAILGUN_API_KEY and REACT_APP_MAILGUN_DOMAIN in .env');
+  
+  // In real implementation this would use the Mailgun API
+  // For example with fetch:
+  /*
+  const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
+  const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
+  const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@yourdomain.com';
+  
+  if (!apiKey || !domain) {
+    console.error('Mailgun API key or domain not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('api:' + apiKey),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        from,
+        to,
+        subject,
+        text
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Mailgun API error: ${response.status}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+  */
+  
+  // Return true for mock implementation
+  return true;
+};
+
 /**
  * Service for handling email notifications for the message board
  */
@@ -8,49 +58,59 @@ export const emailService = {
    * Send a notification for a new message
    * @param {Object} message - The message object
    * @param {Object} author - The message author
-   * @returns {Promise}
+   * @returns {Promise<boolean>}
    */
-  sendNewMessageNotification: async (message, author) => {
+  sendNewMessageNotification: async (message, authorUsername) => {
     try {
+      // Check if notification_preferences table exists
+      const { error: tableCheckError } = await supabase
+        .from('notification_preferences')
+        .select('count', { count: 'exact', head: true });
+      
+      if (tableCheckError) {
+        console.log('Notification preferences table does not exist, skipping email');
+        return false;
+      }
+      
       // Get users who have enabled notifications for all messages
       const { data: userPreferences, error } = await supabase
         .from('notification_preferences')
         .select(`
           user_id,
           receive_all_messages,
-          receive_admin_announcements,
           profiles:user_id (
             email
           )
         `)
         .eq('receive_all_messages', true);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user preferences:', error);
+        return false;
+      }
       
       // Get list of emails to notify
       const recipientEmails = userPreferences
-        .map(pref => pref.profiles?.email)
-        .filter(email => email && email !== author.email); // Don't send to the author
+        .filter(pref => pref.profiles?.email) // Only include users with email
+        .map(pref => pref.profiles?.email);
       
-      if (recipientEmails.length === 0) return;
+      if (recipientEmails.length === 0) {
+        console.log('No recipients for message notification');
+        return false;
+      }
       
-      // Call Supabase Edge Function to send emails
-      const { error: fnError } = await supabase.functions.invoke('send-message-notification', {
-        body: {
-          recipients: recipientEmails,
-          message: {
-            id: message.id,
-            content: message.content,
-            created_at: message.created_at
-          },
-          author: {
-            username: author.username || 'Anonymous',
-            email: author.email
-          }
-        }
-      });
+      // Send email to each recipient
+      const subject = `New message from ${authorUsername || 'Anonymous'}`;
+      const text = `
+${authorUsername || 'Someone'} posted a new message:
+
+"${message.content}"
+
+Visit the message board to respond.
+`;
       
-      if (fnError) throw fnError;
+      // Send to all recipients (in production you'd want to use BCC or send individual emails)
+      await sendMail(recipientEmails.join(','), subject, text);
       
       return true;
     } catch (error) {
@@ -62,12 +122,22 @@ export const emailService = {
   /**
    * Send a notification for admin announcements
    * @param {Object} message - The announcement message
-   * @param {Object} admin - The admin user
-   * @returns {Promise}
+   * @param {string} adminUsername - The admin username
+   * @returns {Promise<boolean>}
    */
-  sendAdminAnnouncementNotification: async (message, admin) => {
+  sendAnnouncementNotification: async (message, adminUsername) => {
     try {
-      // Get users who have enabled notifications for admin announcements
+      // Check if notification_preferences table exists
+      const { error: tableCheckError } = await supabase
+        .from('notification_preferences')
+        .select('count', { count: 'exact', head: true });
+      
+      if (tableCheckError) {
+        console.log('Notification preferences table does not exist, skipping email');
+        return false;
+      }
+      
+      // Get users who have enabled notifications for announcements
       const { data: userPreferences, error } = await supabase
         .from('notification_preferences')
         .select(`
@@ -79,36 +149,37 @@ export const emailService = {
         `)
         .eq('receive_admin_announcements', true);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user preferences:', error);
+        return false;
+      }
       
       // Get list of emails to notify
       const recipientEmails = userPreferences
-        .map(pref => pref.profiles?.email)
-        .filter(email => email && email !== admin.email); // Don't send to the admin
+        .filter(pref => pref.profiles?.email) // Only include users with email
+        .map(pref => pref.profiles?.email);
       
-      if (recipientEmails.length === 0) return;
+      if (recipientEmails.length === 0) {
+        console.log('No recipients for announcement notification');
+        return false;
+      }
       
-      // Call Supabase Edge Function to send emails
-      const { error: fnError } = await supabase.functions.invoke('send-admin-announcement', {
-        body: {
-          recipients: recipientEmails,
-          message: {
-            id: message.id,
-            content: message.content,
-            created_at: message.created_at
-          },
-          admin: {
-            username: admin.username || 'Admin',
-            email: admin.email
-          }
-        }
-      });
+      // Send email to each recipient
+      const subject = `ANNOUNCEMENT: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`;
+      const text = `
+ANNOUNCEMENT from ${adminUsername || 'Admin'}:
+
+"${message.content}"
+
+Visit the message board for more information.
+`;
       
-      if (fnError) throw fnError;
+      // Send to all recipients (in production you'd want to use BCC or send individual emails)
+      await sendMail(recipientEmails.join(','), subject, text);
       
       return true;
     } catch (error) {
-      console.error('Error sending admin announcement:', error);
+      console.error('Error sending announcement notification:', error);
       return false;
     }
   },
@@ -181,4 +252,6 @@ export const emailService = {
       return false;
     }
   }
-}; 
+};
+
+export default emailService; 

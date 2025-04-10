@@ -25,50 +25,62 @@ const EmailNotificationPreferences = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [tableExists, setTableExists] = useState(true);
 
   useEffect(() => {
     const fetchPreferences = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
         setError(null);
 
-        // Check if the notification_preferences table exists
-        const { error: tableCheckError } = await supabase
-          .from('notification_preferences')
-          .select('count(*)', { count: 'exact', head: true });
-        
-        // If table doesn't exist yet, just use defaults
-        if (tableCheckError) {
-          console.log('Notification preferences table may not exist yet, using defaults');
+        // Check if the notification_preferences table exists by attempting a simple query
+        try {
+          const { error: tableCheckError } = await supabase
+            .from('notification_preferences')
+            .select('count', { count: 'exact', head: true });
+          
+          // If table doesn't exist, set flag and return early
+          if (tableCheckError) {
+            console.log('Notification preferences table may not exist yet, using defaults');
+            setTableExists(false);
+            setLoading(false);
+            return;
+          }
+        } catch (tableError) {
+          console.log('Error checking table existence:', tableError);
+          setTableExists(false);
           setLoading(false);
           return;
         }
 
-        // Fetch user notification preferences from Supabase
-        const { data, error } = await supabase
-          .from('notification_preferences')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        // Table exists, fetch user's preferences
+        try {
+          const { data, error } = await supabase
+            .from('notification_preferences')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found" error
-          console.error('Error fetching preferences:', error);
-          // Just log the error but don't display to user - use defaults instead
-          console.error('Using default preferences');
-        } else if (data) {
-          // If preferences exist, update state
-          setPreferences({
-            receiveAllMessages: data.receive_all_messages,
-            receiveDirectMentions: data.receive_direct_mentions,
-            receiveAdminAnnouncements: data.receive_admin_announcements,
-            emailDigestFrequency: data.email_digest_frequency || 'daily',
-          });
+          if (error) {
+            // No record found or other error
+            console.log('No preferences found or error occurred:', error);
+          } else if (data) {
+            // If preferences exist, update state
+            setPreferences({
+              receiveAllMessages: Boolean(data.receive_all_messages),
+              receiveDirectMentions: Boolean(data.receive_direct_mentions),
+              receiveAdminAnnouncements: Boolean(data.receive_admin_announcements),
+              emailDigestFrequency: data.email_digest_frequency || 'daily',
+            });
+          }
+        } catch (fetchError) {
+          console.error('Error fetching user preferences:', fetchError);
         }
-      } catch (err) {
-        console.error('Error in fetchPreferences:', err);
-        // Just log the error but don't display to user - use defaults instead
       } finally {
         setLoading(false);
       }
@@ -93,6 +105,12 @@ const EmailNotificationPreferences = () => {
       setError(null);
       setSuccess(false);
 
+      // If table doesn't exist, show message to user
+      if (!tableExists) {
+        setError('The notification preferences table doesn\'t exist yet in the database. This feature will be available soon.');
+        return;
+      }
+
       // Format preferences for database
       const preferencesData = {
         user_id: user.id,
@@ -103,46 +121,52 @@ const EmailNotificationPreferences = () => {
         updated_at: new Date().toISOString(),
       };
 
-      // Check if preferences already exist
-      const { data: existingData, error: checkError } = await supabase
-        .from('notification_preferences')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking existing preferences:', checkError);
-      }
-
-      let error;
-      if (existingData) {
-        // Update existing preferences
-        const { error: updateError } = await supabase
+      // Try-catch for error handling
+      try {
+        // Check if preferences already exist
+        const { data: existingData, error: checkError } = await supabase
           .from('notification_preferences')
-          .update(preferencesData)
-          .eq('user_id', user.id);
-        error = updateError;
-      } else {
-        // Insert new preferences
-        const { error: insertError } = await supabase
-          .from('notification_preferences')
-          .insert([{ ...preferencesData, created_at: new Date().toISOString() }]);
-        error = insertError;
-      }
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      if (error) {
-        console.error('Error saving preferences:', error);
-        if (error.message.includes('does not exist')) {
-          setError('The notification preferences table doesn\'t exist yet in the database. This is normal during development.');
-        } else {
-          setError('Failed to save notification preferences. Please try again later.');
+        if (checkError && checkError.code !== 'PGRST116') {
+          // Log error but continue - we'll try to insert
+          console.error('Error checking existing preferences:', checkError);
         }
-      } else {
-        setSuccess(true);
+
+        let saveError;
+        if (existingData?.id) {
+          // Update existing preferences
+          const { error: updateError } = await supabase
+            .from('notification_preferences')
+            .update(preferencesData)
+            .eq('user_id', user.id);
+          saveError = updateError;
+        } else {
+          // Insert new preferences
+          const { error: insertError } = await supabase
+            .from('notification_preferences')
+            .insert([{ ...preferencesData, created_at: new Date().toISOString() }]);
+          saveError = insertError;
+        }
+
+        if (saveError) {
+          // Handle specific table not found error
+          if (saveError.message && typeof saveError.message === 'string' && 
+              saveError.message.includes('does not exist')) {
+            setTableExists(false);
+            setError('The notification preferences table doesn\'t exist yet in the database. This feature will be available soon.');
+          } else {
+            setError('Failed to save notification preferences. Please try again later.');
+          }
+        } else {
+          setSuccess(true);
+        }
+      } catch (err) {
+        console.error('Error in save operation:', err);
+        setError('Failed to save notification preferences. Please try again later.');
       }
-    } catch (err) {
-      console.error('Error saving preferences:', err);
-      setError('Failed to save notification preferences. Please try again later.');
     } finally {
       setSaving(false);
     }
@@ -162,6 +186,12 @@ const EmailNotificationPreferences = () => {
         Email Notification Preferences
       </Typography>
       
+      {!tableExists && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Email notification preferences are not yet available. This feature is coming soon.
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -180,6 +210,7 @@ const EmailNotificationPreferences = () => {
             <Switch
               checked={preferences.receiveAllMessages}
               onChange={() => handleToggle('receiveAllMessages')}
+              disabled={!tableExists || saving}
             />
           }
           label="Receive email notifications for all new messages"
@@ -190,6 +221,7 @@ const EmailNotificationPreferences = () => {
             <Switch
               checked={preferences.receiveDirectMentions}
               onChange={() => handleToggle('receiveDirectMentions')}
+              disabled={!tableExists || saving}
             />
           }
           label="Receive notifications when someone mentions you"
@@ -200,6 +232,7 @@ const EmailNotificationPreferences = () => {
             <Switch
               checked={preferences.receiveAdminAnnouncements}
               onChange={() => handleToggle('receiveAdminAnnouncements')}
+              disabled={!tableExists || saving}
             />
           }
           label="Receive notifications for admin announcements"
@@ -210,7 +243,7 @@ const EmailNotificationPreferences = () => {
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !tableExists}
           sx={{ mr: 2 }}
         >
           {saving ? 'Saving...' : 'Save Preferences'}

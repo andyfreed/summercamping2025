@@ -4,13 +4,7 @@ import {
   Routes, 
   Route, 
   Link, 
-  useLocation,
-  createHashRouter,
-  RouterProvider,
-  createRoutesFromElements,
-  UNSAFE_DataRouterContext, 
-  UNSAFE_DataRouterStateContext,
-  UNSAFE_FutureConfig
+  useLocation
 } from 'react-router-dom';
 import { 
   ThemeProvider, 
@@ -45,10 +39,6 @@ import ScrollToTop from './components/ScrollToTop';
 import CountdownTimer from './components/CountdownTimer';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SignUpForm from './components/SignUpForm';
-
-// Set future flags to address the warnings
-UNSAFE_FutureConfig.v7_startTransition = true;
-UNSAFE_FutureConfig.v7_relativeSplatPath = true;
 
 const AnimatedBackground = ({ mode }) => (
   <Box
@@ -227,7 +217,7 @@ function AppContent({ colorMode, mode }) {
   };
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Box sx={{ 
         position: 'relative', 
         minHeight: '100vh',

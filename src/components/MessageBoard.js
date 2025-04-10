@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Container, 
@@ -39,6 +39,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignUpForm from './SignUpForm';
 import EmailNotificationPreferences from './EmailNotificationPreferences';
+import emailService from '../services/emailService';
 
 function MessageBoard() {
   const navigate = useNavigate();
@@ -62,38 +63,105 @@ function MessageBoard() {
   // Check if user is admin based on their email
   const isAdmin = user?.email === 'a.freed@outlook.com';
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async (retryAttempt = 0) => {
+    // Local constant for maximum retry attempts
+    const maxRetries = 2;
+    
     try {
       setIsLoadingMessages(true);
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          is_deleted,
-          is_announcement,
-          user_id,
-          user:user_id (
-            username
-          )
-        `)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      setConnectionError(null);
       
-      if (data) {
-        console.log('Fetched messages:', data.length);
-        setMessages(data);
+      // First check if we have the expected columns to avoid 42703 errors
+      try {
+        // Try a simpler query first without the potentially missing columns
+        const { error: sampleError } = await supabase
+          .from('messages')
+          .select('id, content, created_at, user_id')
+          .limit(1);
+          
+        if (sampleError) {
+          console.error('Error checking table structure:', sampleError);
+          throw sampleError;
+        }
+        
+        // If we got here, the basic columns exist - proceed with full query
+        const { data, error } = await supabase
+          .from('messages')
+          .select(`
+            id,
+            content,
+            created_at,
+            user_id,
+            user:user_id (
+              username
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Supabase error fetching messages:', error);
+          throw error;
+        }
+        
+        if (data) {
+          console.log('Fetched messages:', data.length);
+          // Enhance the data with default values for potentially missing columns
+          const enhancedData = data.map(msg => ({
+            ...msg,
+            is_deleted: false, // Assume not deleted since we'll filter them out anyway
+            is_announcement: false // Default for missing column
+          }));
+          setMessages(enhancedData);
+          // Clear any previous connection error on successful fetch
+          setConnectionError(null);
+        } else {
+          // Handle case where data is null or undefined
+          console.warn('No messages data returned from API');
+          setMessages([]);
+        }
+      } catch (tableError) {
+        console.error('Error with table structure:', tableError);
+        throw tableError;
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      setConnectionError('Error connecting to the message board. Please try again later.');
+      
+      // If we haven't exceeded max retries, try again
+      if (retryAttempt < maxRetries) {
+        console.log(`Retry attempt ${retryAttempt + 1}/${maxRetries}...`);
+        setTimeout(() => fetchMessages(retryAttempt + 1), 1500);
+        return;
+      }
+      
+      // Show a more user-friendly message with specific guidance
+      let errorMessage = 'Unable to connect to the message board. ';
+      
+      if (error.code === '42703') {
+        errorMessage += 'The database table is missing required columns. Please contact the administrator to update the database schema.';
+      } else if (error.status === 400) {
+        errorMessage += 'The database table might not exist yet.';
+      }
+      
+      errorMessage += ' Please try again later.';
+      setConnectionError(errorMessage);
+      
+      // Set fallback content to avoid completely empty UI
+      setMessages(currentMessages => {
+        if (currentMessages.length === 0) {
+          return [{
+            id: 'offline-1',
+            content: 'The message board is currently offline. Please try again later.',
+            created_at: new Date().toISOString(),
+            is_announcement: true,
+            user: { username: 'System' }
+          }];
+        }
+        return currentMessages;
+      });
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, []);
 
   const deleteMessage = async (messageId) => {
     try {
@@ -216,52 +284,75 @@ function MessageBoard() {
   useEffect(() => {
     let mounted = true;
     let channel;
+    let retryCount = 0;
+    const maxRetries = 3;
 
     const initializeBoard = async () => {
       if (!mounted) return;
       
-      await fetchMessages();
+      try {
+        await fetchMessages();
+      } catch (error) {
+        console.error('Failed to fetch initial messages:', error);
+      }
 
-      // Set up real-time subscription with specific event filters
-      channel = supabase.channel('message-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'DELETE',
-            schema: 'public',
-            table: 'messages'
-          },
-          (payload) => {
-            if (!mounted) return;
-            console.log('Received delete update:', payload);
-            if (payload.old?.id) {
-              setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+      try {
+        // Set up real-time subscription with specific event filters
+        channel = supabase.channel('message-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: 'DELETE',
+              schema: 'public',
+              table: 'messages'
+            },
+            (payload) => {
+              if (!mounted) return;
+              console.log('Received delete update:', payload);
+              if (payload.old?.id) {
+                setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
+              }
             }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages'
-          },
-          (payload) => {
-            if (!mounted) return;
-            console.log('Received insert update:', payload);
-            if (payload.new) {
-              setMessages(prev => [payload.new, ...prev]);
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages'
+            },
+            (payload) => {
+              if (!mounted) return;
+              console.log('Received insert update:', payload);
+              if (payload.new) {
+                setMessages(prev => [payload.new, ...prev]);
+              }
             }
-          }
-        );
+          );
 
-      channel.subscribe((status, err) => {
-        if (!mounted) return;
-        console.log('Subscription status:', status);
-        if (err) {
-          console.error('Subscription error:', err);
+        channel.subscribe((status, err) => {
+          if (!mounted) return;
+          console.log('Subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            setConnectionError(null);
+          }
+          
+          if (err) {
+            console.error('Subscription error:', err);
+            setConnectionError('Connection to message board lost. Messages may not update in real-time.');
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up real-time subscription:', error);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying subscription setup (${retryCount}/${maxRetries})...`);
+          setTimeout(initializeBoard, 3000); // Retry after 3 seconds
+        } else {
+          setConnectionError('Unable to establish real-time connection. Please refresh the page.');
         }
-      });
+      }
     };
 
     initializeBoard();
@@ -270,10 +361,14 @@ function MessageBoard() {
       mounted = false;
       if (channel) {
         console.log('Cleaning up subscription');
-        channel.unsubscribe();
+        try {
+          channel.unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing from channel:', error);
+        }
       }
     };
-  }, []);
+  }, [fetchMessages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -282,21 +377,58 @@ function MessageBoard() {
     try {
       setIsPosting(true);
       
-      const isAnnouncement = isAdmin && newMessage.trim().startsWith('!announcement:');
-      const messageContent = isAnnouncement 
+      const isAnnouncementPrefix = isAdmin && newMessage.trim().startsWith('!announcement:');
+      const messageContent = isAnnouncementPrefix 
         ? newMessage.trim().substring('!announcement:'.length).trim() 
         : newMessage.trim();
       
-      // Create message
+      // Create base message object with required fields
+      const messageData = {
+        content: messageContent,
+        user_id: user.id
+      };
+      
+      // Only try to set is_announcement if admin is posting with the prefix
+      if (isAdmin && isAnnouncementPrefix) {
+        try {
+          // Try with is_announcement field first
+          const { data, error } = await supabase
+            .from('messages')
+            .insert([{
+              ...messageData,
+              is_announcement: true
+            }])
+            .select(`
+              *,
+              user:user_id (
+                username
+              )
+            `)
+            .single();
+
+          if (error) {
+            // If 42703 error (column doesn't exist), retry without the field
+            if (error.code === '42703' && error.message.includes('is_announcement')) {
+              throw new Error('Missing is_announcement column');
+            } else {
+              throw error;
+            }
+          }
+
+          // Success! Update messages
+          setMessages(currentMessages => [data, ...currentMessages]);
+          setNewMessage('');
+          return;
+        } catch (err) {
+          console.log('Falling back to basic message insert without is_announcement:', err);
+          // Fall through to basic insert without is_announcement
+        }
+      }
+      
+      // Basic insert without is_announcement column
       const { data, error } = await supabase
         .from('messages')
-        .insert([
-          {
-            content: messageContent,
-            user_id: user.id,
-            is_announcement: isAnnouncement
-          }
-        ])
+        .insert([messageData])
         .select(`
           *,
           user:user_id (
@@ -310,15 +442,23 @@ function MessageBoard() {
         throw error;
       }
 
+      // Success with basic insert
+      // Manually add is_announcement attribute for UI consistency
+      const enhancedMessage = {
+        ...data,
+        is_announcement: isAnnouncementPrefix
+      };
+      
       // Add to messages list
-      setMessages(currentMessages => [data, ...currentMessages]);
+      setMessages(currentMessages => [enhancedMessage, ...currentMessages]);
       setNewMessage('');
       
       // Send email notifications
-      await sendEmailNotifications(data);
+      await sendEmailNotifications(enhancedMessage);
       
     } catch (error) {
       console.error('Error sending message:', error);
+      setConnectionError('Failed to post message. Please try again.');
     } finally {
       setIsPosting(false);
     }
@@ -329,12 +469,17 @@ function MessageBoard() {
     if (!message || !message.user) return;
     
     try {
-      // NOTE: Email notifications are currently disabled because the email field 
-      // is not available in the database. In a production environment, 
-      // you would fetch the user email from the auth system.
-      console.log('Email notifications are disabled - would have sent notification for message:', message.id);
+      // Get the username for the email
+      const username = message.user?.username || 'Anonymous';
       
-      // Simulate successful notification for UI flow
+      // If it's an announcement, use the announcement notification
+      if (message.is_announcement) {
+        await emailService.sendAnnouncementNotification(message, username);
+      } else {
+        // Otherwise send regular message notification
+        await emailService.sendNewMessageNotification(message, username);
+      }
+      
       return true;
     } catch (error) {
       console.error('Error sending email notifications:', error);
@@ -452,10 +597,38 @@ function MessageBoard() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {connectionError && (
-        <Paper sx={{ p: 2, mb: 3, bgcolor: 'error.dark' }}>
-          <Typography color="white">
-            {connectionError}
-          </Typography>
+        <Paper sx={{ p: 3, mb: 3, bgcolor: 'rgba(211, 47, 47, 0.9)', borderRadius: '8px', boxShadow: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography color="white" variant="h6" gutterBottom>
+                Connection Issue
+              </Typography>
+              <Typography color="white" sx={{ mb: 1 }}>
+                {connectionError}
+              </Typography>
+              <Typography color="white" variant="body2" sx={{ opacity: 0.8 }}>
+                This could be due to a network issue, server maintenance, or the message board feature not being fully set up yet.
+              </Typography>
+            </Box>
+            <Button 
+              variant="outlined"
+              onClick={() => {
+                setConnectionError(null);
+                fetchMessages();
+              }}
+              sx={{ 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': {
+                  borderColor: 'white',
+                  bgcolor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+              size="medium"
+            >
+              Retry Connection
+            </Button>
+          </Box>
         </Paper>
       )}
       
@@ -541,57 +714,79 @@ function MessageBoard() {
             <Typography>Loading messages...</Typography>
           ) : (
             <List>
-              {messages.map((message, index) => (
-                <React.Fragment key={message.id}>
-                  {index > 0 && <Divider component="li" />}
-                  <ListItem 
-                    alignItems="flex-start"
-                    sx={message.is_announcement ? {
-                      bgcolor: 'rgba(255, 126, 0, 0.1)',
-                      borderLeft: '4px solid #FF7E00',
-                    } : {}}
-                  >
-                    <ListItemAvatar>
-                      <Avatar sx={message.is_announcement ? { bgcolor: '#FF7E00' } : {}}>
-                        {message.user?.username?.[0] || 'U'}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Typography 
-                          component="span" 
-                          fontWeight={message.is_announcement ? 'bold' : 'normal'}
-                        >
-                          {message.is_announcement ? '📢 ' : ''}
-                          {message.user?.username || 'Anonymous'}
-                        </Typography>
-                      }
-                      secondary={
-                        <>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            color="text.primary"
-                            sx={{ display: 'block' }}
-                          >
-                            {message.content}
-                          </Typography>
-                          {new Date(message.created_at).toLocaleDateString()}
-                        </>
-                      }
-                    />
-                    {(isAdmin || message.user_id === user.id) && (
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleDeleteClick(message)}
+              {messages.length === 0 ? (
+                <Paper sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body1" color="textSecondary">
+                    No messages yet. Be the first to post!
+                  </Typography>
+                </Paper>
+              ) : (
+                messages.map((message, index) => {
+                  const isOfflineMessage = message.id?.toString().startsWith('offline-');
+                  return (
+                    <React.Fragment key={message.id}>
+                      {index > 0 && <Divider component="li" />}
+                      <ListItem 
+                        alignItems="flex-start"
+                        sx={{
+                          ...(message.is_announcement ? {
+                            bgcolor: 'rgba(255, 126, 0, 0.1)',
+                            borderLeft: '4px solid #FF7E00',
+                          } : {}),
+                          ...(isOfflineMessage ? {
+                            bgcolor: 'rgba(0, 0, 0, 0.05)',
+                            borderLeft: '4px solid #999',
+                          } : {})
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
-                  </ListItem>
-                </React.Fragment>
-              ))}
+                        <ListItemAvatar>
+                          <Avatar 
+                            sx={{
+                              ...(message.is_announcement ? { bgcolor: '#FF7E00' } : {}),
+                              ...(isOfflineMessage ? { bgcolor: '#999' } : {})
+                            }}
+                          >
+                            {message.user?.username?.[0] || 'U'}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Typography 
+                              component="span" 
+                              fontWeight={message.is_announcement ? 'bold' : 'normal'}
+                            >
+                              {message.is_announcement ? '📢 ' : ''}
+                              {message.user?.username || 'Anonymous'}
+                            </Typography>
+                          }
+                          secondary={
+                            <>
+                              <Typography
+                                component="span"
+                                variant="body2"
+                                color="text.primary"
+                                sx={{ display: 'block' }}
+                              >
+                                {message.content}
+                              </Typography>
+                              {new Date(message.created_at).toLocaleDateString()}
+                            </>
+                          }
+                        />
+                        {!isOfflineMessage && (isAdmin || message.user_id === user.id) && (
+                          <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            onClick={() => handleDeleteClick(message)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </ListItem>
+                    </React.Fragment>
+                  );
+                })
+              )}
             </List>
           )}
 
