@@ -24,16 +24,22 @@ import {
   DialogContent,
   DialogActions,
   Menu,
-  MenuItem
+  MenuItem,
+  Collapse
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SettingsIcon from '@mui/icons-material/Settings';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignUpForm from './SignUpForm';
+import EmailNotificationPreferences from './EmailNotificationPreferences';
+import { emailService } from '../services/emailService';
 
 function MessageBoard() {
   const navigate = useNavigate();
@@ -52,6 +58,8 @@ function MessageBoard() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Check if user is admin based on their email
   const isAdmin = user?.email === 'a.freed@outlook.com';
@@ -66,9 +74,11 @@ function MessageBoard() {
           content,
           created_at,
           is_deleted,
+          is_announcement,
           user_id,
           user:user_id (
-            username
+            username,
+            email
           )
         `)
         .eq('is_deleted', false)
@@ -274,18 +284,27 @@ function MessageBoard() {
 
     try {
       setIsPosting(true);
+      
+      const isAnnouncement = isAdmin && newMessage.trim().startsWith('!announcement:');
+      const messageContent = isAnnouncement 
+        ? newMessage.trim().substring('!announcement:'.length).trim() 
+        : newMessage.trim();
+      
+      // Create message
       const { data, error } = await supabase
         .from('messages')
         .insert([
           {
-            content: newMessage.trim(),
-            user_id: user.id
+            content: messageContent,
+            user_id: user.id,
+            is_announcement: isAnnouncement
           }
         ])
         .select(`
           *,
           user:user_id (
-            username
+            username,
+            email
           )
         `)
         .single();
@@ -295,12 +314,51 @@ function MessageBoard() {
         throw error;
       }
 
+      // Add to messages list
       setMessages(currentMessages => [data, ...currentMessages]);
       setNewMessage('');
+      
+      // Send email notifications
+      await sendEmailNotifications(data);
+      
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
       setIsPosting(false);
+    }
+  };
+  
+  // Function to handle sending email notifications
+  const sendEmailNotifications = async (message) => {
+    if (!message || !message.user) return;
+    
+    try {
+      setIsSendingEmail(true);
+      
+      // Construct author object
+      const author = {
+        username: message.user.username,
+        email: message.user.email
+      };
+      
+      let success = false;
+      
+      // Send appropriate notifications based on message type
+      if (message.is_announcement) {
+        success = await emailService.sendAdminAnnouncementNotification(message, author);
+      } else {
+        // Check for mentions
+        await emailService.sendMentionNotifications(message, author);
+        
+        // Send regular message notification
+        success = await emailService.sendNewMessageNotification(message, author);
+      }
+      
+      console.log('Email notification sent:', success);
+    } catch (error) {
+      console.error('Error sending email notifications:', error);
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -411,130 +469,6 @@ function MessageBoard() {
     </Card>
   );
 
-  // Update the admin menu section
-  const adminMenu = isAdmin && (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-      <IconButton
-        onClick={(e) => setAnchorEl(e.currentTarget)}
-        color="primary"
-      >
-        <MoreVertIcon />
-      </IconButton>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-      >
-        <MenuItem onClick={() => {
-          setResetDialogOpen(true);
-          setAnchorEl(null);
-        }}>
-          Reset All Usernames
-        </MenuItem>
-        <MenuItem onClick={() => {
-          handleDeleteAllClick();
-          setAnchorEl(null);
-        }}>
-          Delete All Messages
-        </MenuItem>
-      </Menu>
-    </Box>
-  );
-
-  // Update the message list section
-  const messageList = (
-    <List>
-      {messages.map((message, index) => (
-        <React.Fragment key={message.id}>
-          {index > 0 && <Divider component="li" />}
-          <ListItem alignItems="flex-start">
-            <ListItemAvatar>
-              <Avatar>{message.user?.username?.[0] || 'U'}</Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={message.user?.username || 'Anonymous'}
-              secondary={
-                <>
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.primary"
-                    sx={{ display: 'block' }}
-                  >
-                    {message.content}
-                  </Typography>
-                  {new Date(message.created_at).toLocaleDateString()}
-                </>
-              }
-            />
-            {isAdmin && (
-              <IconButton
-                edge="end"
-                aria-label="delete"
-                onClick={() => handleDeleteClick(message)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            )}
-          </ListItem>
-        </React.Fragment>
-      ))}
-    </List>
-  );
-
-  // Update the dialogs section
-  const dialogs = (
-    <>
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Delete Message</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this message? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deleteAllDialogOpen}
-        onClose={() => setDeleteAllDialogOpen(false)}
-      >
-        <DialogTitle>Delete All Messages</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete all messages? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteAllConfirm} color="error">Delete All</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={resetDialogOpen}
-        onClose={() => setResetDialogOpen(false)}
-      >
-        <DialogTitle>Reset All Usernames</DialogTitle>
-        <DialogContent>
-          <Typography>
-            This will reset all usernames except for the administrator. Users will need to set new usernames when they next sign in. Are you sure you want to proceed?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleResetUsernames} color="primary">Reset</Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {connectionError && (
@@ -577,14 +511,37 @@ function MessageBoard() {
         renderAuthCard()
       ) : (
         <>
-          {adminMenu}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            {isAdmin && (
+              <IconButton
+                onClick={(e) => setAnchorEl(e.currentTarget)}
+                color="primary"
+              >
+                <MoreVertIcon />
+              </IconButton>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={showPreferences ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+              endIcon={<SettingsIcon />}
+              onClick={() => setShowPreferences(!showPreferences)}
+              sx={{ ml: 'auto' }}
+            >
+              Email Notifications
+            </Button>
+          </Box>
+          
+          <Collapse in={showPreferences} timeout="auto" unmountOnExit>
+            <EmailNotificationPreferences />
+          </Collapse>
+          
           <Paper sx={{ p: 3, mb: 4 }}>
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
                 multiline
                 rows={3}
-                placeholder="Write your message..."
+                placeholder={isAdmin ? "Write your message... Start with !announcement: for admin announcements" : "Write your message..."}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 disabled={isPosting}
@@ -595,7 +552,7 @@ function MessageBoard() {
                 variant="contained"
                 disabled={!newMessage.trim() || isPosting}
               >
-                Post Message
+                {isPosting ? 'Posting...' : 'Post Message'}
               </Button>
             </Box>
           </Paper>
@@ -603,8 +560,79 @@ function MessageBoard() {
           {isLoadingMessages ? (
             <Typography>Loading messages...</Typography>
           ) : (
-            messageList
+            <List>
+              {messages.map((message, index) => (
+                <React.Fragment key={message.id}>
+                  {index > 0 && <Divider component="li" />}
+                  <ListItem 
+                    alignItems="flex-start"
+                    sx={message.is_announcement ? {
+                      bgcolor: 'rgba(255, 126, 0, 0.1)',
+                      borderLeft: '4px solid #FF7E00',
+                    } : {}}
+                  >
+                    <ListItemAvatar>
+                      <Avatar sx={message.is_announcement ? { bgcolor: '#FF7E00' } : {}}>
+                        {message.user?.username?.[0] || 'U'}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography 
+                          component="span" 
+                          fontWeight={message.is_announcement ? 'bold' : 'normal'}
+                        >
+                          {message.is_announcement ? '📢 ' : ''}
+                          {message.user?.username || 'Anonymous'}
+                        </Typography>
+                      }
+                      secondary={
+                        <>
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            color="text.primary"
+                            sx={{ display: 'block' }}
+                          >
+                            {message.content}
+                          </Typography>
+                          {new Date(message.created_at).toLocaleDateString()}
+                        </>
+                      }
+                    />
+                    {(isAdmin || message.user_id === user.id) && (
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleDeleteClick(message)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+                  </ListItem>
+                </React.Fragment>
+              ))}
+            </List>
           )}
+
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+          >
+            <MenuItem onClick={() => {
+              setResetDialogOpen(true);
+              setAnchorEl(null);
+            }}>
+              Reset All Usernames
+            </MenuItem>
+            <MenuItem onClick={() => {
+              handleDeleteAllClick();
+              setAnchorEl(null);
+            }}>
+              Delete All Messages
+            </MenuItem>
+          </Menu>
 
           <Dialog
             open={deleteDialogOpen}
@@ -637,10 +665,24 @@ function MessageBoard() {
               <Button onClick={handleDeleteAllConfirm} color="error">Delete All</Button>
             </DialogActions>
           </Dialog>
+
+          <Dialog
+            open={resetDialogOpen}
+            onClose={() => setResetDialogOpen(false)}
+          >
+            <DialogTitle>Reset All Usernames</DialogTitle>
+            <DialogContent>
+              <Typography>
+                This will reset all usernames except for the administrator. Users will need to set new usernames when they next sign in. Are you sure you want to proceed?
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleResetUsernames} color="primary">Reset</Button>
+            </DialogActions>
+          </Dialog>
         </>
       )}
-
-      {dialogs}
     </Container>
   );
 }
