@@ -1,5 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { 
+  HashRouter as Router, 
+  Routes, 
+  Route, 
+  Link, 
+  useLocation,
+  createHashRouter,
+  RouterProvider,
+  createRoutesFromElements,
+  UNSAFE_DataRouterContext, 
+  UNSAFE_DataRouterStateContext,
+  UNSAFE_FutureConfig
+} from 'react-router-dom';
 import { 
   ThemeProvider, 
   CssBaseline, 
@@ -33,6 +45,10 @@ import ScrollToTop from './components/ScrollToTop';
 import CountdownTimer from './components/CountdownTimer';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SignUpForm from './components/SignUpForm';
+
+// Set future flags to address the warnings
+UNSAFE_FutureConfig.v7_startTransition = true;
+UNSAFE_FutureConfig.v7_relativeSplatPath = true;
 
 const AnimatedBackground = ({ mode }) => (
   <Box

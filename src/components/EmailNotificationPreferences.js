@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 const EmailNotificationPreferences = () => {
   const { user } = useAuth();
   const [preferences, setPreferences] = useState({
-    receiveAllMessages: false,
+    receiveAllMessages: true,
     receiveDirectMentions: true,
     receiveAdminAnnouncements: true,
     emailDigestFrequency: 'daily', // daily, weekly, never
@@ -34,6 +34,18 @@ const EmailNotificationPreferences = () => {
         setLoading(true);
         setError(null);
 
+        // Check if the notification_preferences table exists
+        const { error: tableCheckError } = await supabase
+          .from('notification_preferences')
+          .select('count(*)', { count: 'exact', head: true });
+        
+        // If table doesn't exist yet, just use defaults
+        if (tableCheckError) {
+          console.log('Notification preferences table may not exist yet, using defaults');
+          setLoading(false);
+          return;
+        }
+
         // Fetch user notification preferences from Supabase
         const { data, error } = await supabase
           .from('notification_preferences')
@@ -43,11 +55,10 @@ const EmailNotificationPreferences = () => {
 
         if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found" error
           console.error('Error fetching preferences:', error);
-          throw error;
-        }
-
-        // If preferences exist, update state
-        if (data) {
+          // Just log the error but don't display to user - use defaults instead
+          console.error('Using default preferences');
+        } else if (data) {
+          // If preferences exist, update state
           setPreferences({
             receiveAllMessages: data.receive_all_messages,
             receiveDirectMentions: data.receive_direct_mentions,
@@ -56,7 +67,8 @@ const EmailNotificationPreferences = () => {
           });
         }
       } catch (err) {
-        setError('Failed to load notification preferences. Please try again later.');
+        console.error('Error in fetchPreferences:', err);
+        // Just log the error but don't display to user - use defaults instead
       } finally {
         setLoading(false);
       }
@@ -99,7 +111,7 @@ const EmailNotificationPreferences = () => {
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
+        console.error('Error checking existing preferences:', checkError);
       }
 
       let error;
@@ -118,8 +130,16 @@ const EmailNotificationPreferences = () => {
         error = insertError;
       }
 
-      if (error) throw error;
-      setSuccess(true);
+      if (error) {
+        console.error('Error saving preferences:', error);
+        if (error.message.includes('does not exist')) {
+          setError('The notification preferences table doesn\'t exist yet in the database. This is normal during development.');
+        } else {
+          setError('Failed to save notification preferences. Please try again later.');
+        }
+      } else {
+        setSuccess(true);
+      }
     } catch (err) {
       console.error('Error saving preferences:', err);
       setError('Failed to save notification preferences. Please try again later.');
