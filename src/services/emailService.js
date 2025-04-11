@@ -1,26 +1,21 @@
 import { supabase } from '../lib/supabase';
 
-// Dummy function that logs emails instead of sending them
-// For security, we don't store API keys in the code
+// Real implementation using the Mailgun API
 const sendMail = async (to, subject, text) => {
-  console.log(`[EMAIL MOCK] Would send email to: ${to}`);
-  console.log(`[EMAIL MOCK] Subject: ${subject}`);
-  console.log(`[EMAIL MOCK] Body: ${text}`);
-  console.log('[EMAIL MOCK] In production, configure Mailgun with REACT_APP_MAILGUN_API_KEY and REACT_APP_MAILGUN_DOMAIN in .env');
-  
-  // In real implementation this would use the Mailgun API
-  // For example with fetch:
-  /*
   const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
   const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
-  const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@yourdomain.com';
+  const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@summercamping2025.com';
   
   if (!apiKey || !domain) {
     console.error('Mailgun API key or domain not configured');
+    console.log(`[EMAIL ERROR] Email not sent - missing configuration`);
     return false;
   }
 
   try {
+    console.log(`[EMAIL] Sending email to: ${to}`);
+    console.log(`[EMAIL] Subject: ${subject}`);
+    
     const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
       method: 'POST',
       headers: {
@@ -28,7 +23,7 @@ const sendMail = async (to, subject, text) => {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        from,
+        from: `Summer Camping 2025 <${from}>`,
         to,
         subject,
         text
@@ -36,18 +31,16 @@ const sendMail = async (to, subject, text) => {
     });
     
     if (!response.ok) {
-      throw new Error(`Mailgun API error: ${response.status}`);
+      const responseText = await response.text();
+      throw new Error(`Mailgun API error ${response.status}: ${responseText}`);
     }
     
+    console.log(`[EMAIL] Successfully sent email to ${to}`);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
     return false;
   }
-  */
-  
-  // Return true for mock implementation
-  return true;
 };
 
 /**
