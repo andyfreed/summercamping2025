@@ -22,6 +22,9 @@ REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
 REACT_APP_MAILGUN_DOMAIN=your-mailgun-domain.com
 REACT_APP_MAILGUN_API_KEY=your-mailgun-api-key
 REACT_APP_MAILGUN_FROM_EMAIL=noreply@your-domain.com
+
+# Website URL for email links
+REACT_APP_WEBSITE_URL=https://your-website-url.com
 ```
 
 ## Email Notifications

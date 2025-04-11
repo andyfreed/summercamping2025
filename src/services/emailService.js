@@ -1,7 +1,8 @@
 import { supabase } from '../lib/supabase';
+import emailTemplates from './emailTemplates';
 
 // Real implementation using the Mailgun API
-const sendMail = async (to, subject, text) => {
+const sendMail = async (to, subject, text, html = null) => {
   const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
   const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
   const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@summercamping2025.com';
@@ -16,18 +17,26 @@ const sendMail = async (to, subject, text) => {
     console.log(`[EMAIL] Sending email to: ${to}`);
     console.log(`[EMAIL] Subject: ${subject}`);
     
+    // Create the body parameters
+    const params = {
+      from: `Summer Camping 2025 <${from}>`,
+      to,
+      subject,
+      text
+    };
+    
+    // Add HTML version if provided
+    if (html) {
+      params.html = html;
+    }
+    
     const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': 'Basic ' + btoa('api:' + apiKey),
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({
-        from: `Summer Camping 2025 <${from}>`,
-        to,
-        subject,
-        text
-      })
+      body: new URLSearchParams(params)
     });
     
     if (!response.ok) {
@@ -44,6 +53,104 @@ const sendMail = async (to, subject, text) => {
 };
 
 /**
+ * Send an email to multiple recipients using BCC
+ * @param {Array} recipients - Array of email addresses
+ * @param {string} subject - Email subject
+ * @param {string} text - Plain text email content
+ * @param {string} html - HTML email content
+ * @returns {Promise<boolean>} - Success status
+ */
+const sendMailToBcc = async (recipients, subject, text, html = null) => {
+  if (!recipients || !recipients.length) {
+    console.warn('No recipients provided for email');
+    return false;
+  }
+  
+  // For privacy, use BCC and send to the website's own address
+  const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
+  const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
+  const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@summercamping2025.com';
+  
+  if (!apiKey || !domain) {
+    console.error('Mailgun API key or domain not configured');
+    console.log(`[EMAIL ERROR] Email not sent - missing configuration`);
+    return false;
+  }
+
+  try {
+    console.log(`[EMAIL] Sending BCC email to ${recipients.length} recipients`);
+    console.log(`[EMAIL] Subject: ${subject}`);
+    
+    // Create the body parameters
+    const params = {
+      from: `Summer Camping 2025 <${from}>`,
+      to: from, // Send to ourselves
+      bcc: recipients.join(','), // BCC all recipients
+      subject,
+      text
+    };
+    
+    // Add HTML version if provided
+    if (html) {
+      params.html = html;
+    }
+    
+    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('api:' + apiKey),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams(params)
+    });
+    
+    if (!response.ok) {
+      const responseText = await response.text();
+      throw new Error(`Mailgun API error ${response.status}: ${responseText}`);
+    }
+    
+    console.log(`[EMAIL] Successfully sent BCC email to ${recipients.length} recipients`);
+    return true;
+  } catch (error) {
+    console.error('Error sending BCC email:', error);
+    return false;
+  }
+};
+
+/**
+ * Rate limit to avoid sending too many emails at once
+ * Keeps track of email send times and limits to a max number per minute
+ */
+const emailRateLimiter = {
+  // Array to track timestamps of recent emails
+  recentEmails: [],
+  // Maximum emails per minute 
+  maxPerMinute: 10,
+  
+  /**
+   * Check if we can send another email (within rate limit)
+   * @returns {boolean} - True if allowed to send
+   */
+  canSendEmail() {
+    const now = Date.now();
+    // Remove emails older than 1 minute from tracking array
+    this.recentEmails = this.recentEmails.filter(
+      timestamp => now - timestamp < 60000
+    );
+    
+    // Check if we're under the limit
+    return this.recentEmails.length < this.maxPerMinute;
+  },
+  
+  /**
+   * Record that we sent an email
+   */
+  recordEmailSent() {
+    this.recentEmails.push(Date.now());
+  }
+};
+
+/**
  * Service for handling email notifications for the message board
  */
 export const emailService = {
@@ -55,6 +162,12 @@ export const emailService = {
    */
   sendNewMessageNotification: async (message, authorUsername) => {
     try {
+      // Check if we're within our rate limit
+      if (!emailRateLimiter.canSendEmail()) {
+        console.log('[EMAIL] Rate limit exceeded, skipping notification');
+        return false;
+      }
+      
       // Check if notification_preferences table exists
       const { error: tableCheckError } = await supabase
         .from('notification_preferences')
@@ -92,18 +205,15 @@ export const emailService = {
         return false;
       }
       
-      // Send email to each recipient
-      const subject = `New message from ${authorUsername || 'Anonymous'}`;
-      const text = `
-${authorUsername || 'Someone'} posted a new message:
-
-"${message.content}"
-
-Visit the message board to respond.
-`;
+      // Get email template
+      const emailContent = emailTemplates.newMessage(authorUsername, message.content);
       
-      // Send to all recipients (in production you'd want to use BCC or send individual emails)
-      await sendMail(recipientEmails.join(','), subject, text);
+      // Send to all recipients using BCC
+      const subject = `New message from ${authorUsername || 'Anonymous'}`;
+      await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
+      
+      // Record that we sent an email
+      emailRateLimiter.recordEmailSent();
       
       return true;
     } catch (error) {
@@ -120,6 +230,12 @@ Visit the message board to respond.
    */
   sendAnnouncementNotification: async (message, adminUsername) => {
     try {
+      // Check if we're within our rate limit
+      if (!emailRateLimiter.canSendEmail()) {
+        console.log('[EMAIL] Rate limit exceeded, skipping announcement');
+        return false;
+      }
+      
       // Check if notification_preferences table exists
       const { error: tableCheckError } = await supabase
         .from('notification_preferences')
@@ -157,18 +273,15 @@ Visit the message board to respond.
         return false;
       }
       
-      // Send email to each recipient
-      const subject = `ANNOUNCEMENT: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`;
-      const text = `
-ANNOUNCEMENT from ${adminUsername || 'Admin'}:
-
-"${message.content}"
-
-Visit the message board for more information.
-`;
+      // Get email template
+      const emailContent = emailTemplates.announcement(adminUsername, message.content);
       
-      // Send to all recipients (in production you'd want to use BCC or send individual emails)
-      await sendMail(recipientEmails.join(','), subject, text);
+      // Send email to all recipients using BCC
+      const subject = `ANNOUNCEMENT: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`;
+      await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
+      
+      // Record that we sent an email
+      emailRateLimiter.recordEmailSent();
       
       return true;
     } catch (error) {
@@ -185,6 +298,12 @@ Visit the message board for more information.
    */
   sendMentionNotifications: async (message, author) => {
     try {
+      // Check if we're within our rate limit
+      if (!emailRateLimiter.canSendEmail()) {
+        console.log('[EMAIL] Rate limit exceeded, skipping mention notifications');
+        return false;
+      }
+      
       // Get all users who have preferences set for mentions
       const { data: userPreferences, error } = await supabase
         .from('notification_preferences')
@@ -221,23 +340,15 @@ Visit the message board for more information.
       
       if (recipientEmails.length === 0) return;
       
-      // Call Supabase Edge Function to send emails
-      const { error: fnError } = await supabase.functions.invoke('send-mention-notification', {
-        body: {
-          recipients: recipientEmails,
-          message: {
-            id: message.id,
-            content: message.content,
-            created_at: message.created_at
-          },
-          author: {
-            username: author.username || 'Anonymous',
-            email: author.email
-          }
-        }
-      });
+      // Get email template
+      const emailContent = emailTemplates.mention(author.username || 'Someone', message.content);
       
-      if (fnError) throw fnError;
+      // Send email to mentioned recipients
+      const subject = `You were mentioned by ${author.username || 'Someone'}`;
+      await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
+      
+      // Record that we sent an email
+      emailRateLimiter.recordEmailSent();
       
       return true;
     } catch (error) {

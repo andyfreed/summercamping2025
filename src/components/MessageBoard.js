@@ -472,15 +472,27 @@ function MessageBoard() {
       // Get the username for the email
       const username = message.user?.username || 'Anonymous';
       
+      let emailsSent = false;
+      
       // If it's an announcement, use the announcement notification
       if (message.is_announcement) {
-        await emailService.sendAnnouncementNotification(message, username);
+        emailsSent = await emailService.sendAnnouncementNotification(message, username);
       } else {
         // Otherwise send regular message notification
-        await emailService.sendNewMessageNotification(message, username);
+        emailsSent = await emailService.sendNewMessageNotification(message, username);
+        
+        // Also check for mentions in the message and send those notifications
+        if (message.content && message.content.includes('@')) {
+          const authorInfo = {
+            username,
+            email: user?.email || null
+          };
+          
+          await emailService.sendMentionNotifications(message, authorInfo);
+        }
       }
       
-      return true;
+      return emailsSent;
     } catch (error) {
       console.error('Error sending email notifications:', error);
       return false;
