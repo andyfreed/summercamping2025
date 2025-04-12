@@ -1,15 +1,31 @@
 import { supabase } from '../lib/supabase';
 import emailTemplates from './emailTemplates';
 
-// Real implementation using the Mailgun API
+/**
+ * Send an email using the Mailgun API
+ */
 const sendMail = async (to, subject, text, html = null) => {
   const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
   const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
   const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@summercamping2025.com';
   
-  if (!apiKey || !domain) {
-    console.error('Mailgun API key or domain not configured');
-    console.log(`[EMAIL ERROR] Email not sent - missing configuration`);
+  // Debug raw API key format
+  console.log('[EMAIL DEBUG] Raw API Key format check:', {
+    startsWithKey: apiKey?.startsWith('key-'),
+    length: apiKey?.length,
+    firstFourChars: apiKey?.substring(0, 4),
+    envVarName: 'REACT_APP_MAILGUN_API_KEY'
+  });
+
+  // Debug environment variables
+  console.log('[EMAIL DEBUG] Environment variables loaded:', {
+    MAILGUN_API_KEY_PREFIX: apiKey?.substring(0, 8),
+    MAILGUN_DOMAIN: domain,
+    MAILGUN_FROM: from
+  });
+
+  if (!apiKey || !domain || !to) {
+    console.error('[EMAIL ERROR] Missing required configuration or recipient');
     return false;
   }
 
@@ -18,101 +34,178 @@ const sendMail = async (to, subject, text, html = null) => {
     console.log(`[EMAIL] Subject: ${subject}`);
     
     // Create the body parameters
-    const params = {
-      from: `Summer Camping 2025 <${from}>`,
-      to,
-      subject,
-      text
-    };
+    const params = new URLSearchParams();
+    params.append('from', `Summer Camping 2025 <${from}>`);
+    params.append('to', to);
+    params.append('subject', subject);
+    params.append('text', text);
     
-    // Add HTML version if provided
     if (html) {
-      params.html = html;
+      params.append('html', html);
     }
-    
-    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+
+    // Create base64 encoded auth string
+    const actualKey = apiKey.replace('key-', '');
+    const authString = `api:${actualKey}`;
+    const auth = window.btoa(authString);
+    const authHeader = `Basic ${auth}`;
+
+    console.log('[EMAIL DEBUG] Auth header construction:', {
+      keyLength: actualKey.length,
+      authStringLength: authString.length,
+      base64Length: auth.length,
+      authHeaderLength: authHeader.length,
+      authStringPrefix: authString.substring(0, 10) + '...',
+      base64Prefix: auth.substring(0, 10) + '...',
+      isValidBase64: /^[A-Za-z0-9+/=]+$/.test(auth)
+    });
+
+    // Log request details
+    const endpoint = `https://api.mailgun.net/v3/${domain}/messages`;
+    console.log('[EMAIL DEBUG] Trying Mailgun endpoint:', endpoint);
+    console.log('[EMAIL DEBUG] Request params:', {
+      from: params.get('from'),
+      to: params.get('to'),
+      subject: params.get('subject')
+    });
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('api:' + apiKey),
+        'Authorization': authHeader,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams(params)
+      body: params
     });
-    
+
     if (!response.ok) {
       const responseText = await response.text();
+      console.error('[EMAIL DEBUG] Mailgun API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: responseText,
+        url: response.url,
+        headers: Object.fromEntries(response.headers)
+      });
       throw new Error(`Mailgun API error ${response.status}: ${responseText}`);
     }
-    
+
     console.log(`[EMAIL] Successfully sent email to ${to}`);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('[EMAIL DEBUG] Detailed error:', error);
     return false;
   }
 };
 
 /**
  * Send an email to multiple recipients using BCC
- * @param {Array} recipients - Array of email addresses
+ * @param {Array} bccRecipients - Array of email addresses
  * @param {string} subject - Email subject
  * @param {string} text - Plain text email content
  * @param {string} html - HTML email content
  * @returns {Promise<boolean>} - Success status
  */
-const sendMailToBcc = async (recipients, subject, text, html = null) => {
-  if (!recipients || !recipients.length) {
-    console.warn('No recipients provided for email');
-    return false;
-  }
-  
-  // For privacy, use BCC and send to the website's own address
+const sendMailToBcc = async (bccRecipients, subject, text, html = null) => {
   const apiKey = process.env.REACT_APP_MAILGUN_API_KEY;
   const domain = process.env.REACT_APP_MAILGUN_DOMAIN;
   const from = process.env.REACT_APP_MAILGUN_FROM_EMAIL || 'noreply@summercamping2025.com';
   
-  if (!apiKey || !domain) {
-    console.error('Mailgun API key or domain not configured');
-    console.log(`[EMAIL ERROR] Email not sent - missing configuration`);
+  // Debug raw API key format
+  console.log('[EMAIL DEBUG] Raw API Key format check:', {
+    startsWithKey: apiKey?.startsWith('key-'),
+    length: apiKey?.length,
+    firstFourChars: apiKey?.substring(0, 4),
+    envVarName: 'REACT_APP_MAILGUN_API_KEY'
+  });
+
+  // Debug environment variables
+  console.log('[EMAIL DEBUG] Environment variables loaded:', {
+    MAILGUN_API_KEY_PREFIX: apiKey?.substring(0, 8),
+    MAILGUN_DOMAIN: domain,
+    MAILGUN_FROM: from
+  });
+
+  if (!apiKey || !domain || !bccRecipients || bccRecipients.length === 0) {
+    console.error('[EMAIL ERROR] Missing required configuration or recipients');
     return false;
   }
 
+  console.log('[EMAIL DEBUG] Mailgun Configuration:', {
+    domain,
+    from,
+    apiKey: apiKey.substring(0, 8) + '...',
+    recipientCount: bccRecipients.length,
+    firstRecipient: bccRecipients[0],
+    subject
+  });
+
   try {
-    console.log(`[EMAIL] Sending BCC email to ${recipients.length} recipients`);
-    console.log(`[EMAIL] Subject: ${subject}`);
+    console.log(`[EMAIL] Sending BCC email to ${bccRecipients.length} recipients`);
     
     // Create the body parameters
-    const params = {
-      from: `Summer Camping 2025 <${from}>`,
-      to: from, // Send to ourselves
-      bcc: recipients.join(','), // BCC all recipients
-      subject,
-      text
-    };
+    const params = new URLSearchParams();
+    params.append('from', `Summer Camping 2025 <${from}>`);
+    params.append('to', from); // Send to self as main recipient
+    params.append('bcc', bccRecipients.join(','));
+    params.append('subject', subject);
+    params.append('text', text);
     
-    // Add HTML version if provided
     if (html) {
-      params.html = html;
+      params.append('html', html);
     }
-    
-    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+
+    // Create base64 encoded auth string
+    const actualKey = apiKey.replace('key-', '');
+    const authString = `api:${actualKey}`;
+    const auth = window.btoa(authString);
+    const authHeader = `Basic ${auth}`;
+
+    console.log('[EMAIL DEBUG] Auth header construction:', {
+      keyLength: actualKey.length,
+      authStringLength: authString.length,
+      base64Length: auth.length,
+      authHeaderLength: authHeader.length,
+      authStringPrefix: authString.substring(0, 10) + '...',
+      base64Prefix: auth.substring(0, 10) + '...',
+      isValidBase64: /^[A-Za-z0-9+/=]+$/.test(auth)
+    });
+
+    // Log request details
+    const endpoint = `https://api.mailgun.net/v3/${domain}/messages`;
+    console.log('[EMAIL DEBUG] Trying Mailgun endpoint:', endpoint);
+    console.log('[EMAIL DEBUG] Request params:', {
+      from: params.get('from'),
+      to: params.get('to'),
+      bcc: params.get('bcc'),
+      subject: params.get('subject')
+    });
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa('api:' + apiKey),
+        'Authorization': authHeader,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams(params)
+      body: params
     });
-    
+
     if (!response.ok) {
       const responseText = await response.text();
+      console.error('[EMAIL DEBUG] Mailgun API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: responseText,
+        url: response.url,
+        headers: Object.fromEntries(response.headers)
+      });
       throw new Error(`Mailgun API error ${response.status}: ${responseText}`);
     }
-    
-    console.log(`[EMAIL] Successfully sent BCC email to ${recipients.length} recipients`);
+
+    console.log(`[EMAIL] Successfully sent BCC email to ${bccRecipients.length} recipients`);
     return true;
   } catch (error) {
-    console.error('Error sending BCC email:', error);
+    console.error('[EMAIL DEBUG] Detailed BCC error:', error);
     return false;
   }
 };
@@ -162,62 +255,68 @@ export const emailService = {
    */
   sendNewMessageNotification: async (message, authorUsername) => {
     try {
+      console.log('[EMAIL DEBUG] Starting new message notification process');
+      
       // Check if we're within our rate limit
       if (!emailRateLimiter.canSendEmail()) {
         console.log('[EMAIL] Rate limit exceeded, skipping notification');
         return false;
       }
+
+      // Get the current user's session to access auth.users
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // Check if notification_preferences table exists
-      const { error: tableCheckError } = await supabase
-        .from('notification_preferences')
-        .select('count', { count: 'exact', head: true });
-      
-      if (tableCheckError) {
-        console.log('Notification preferences table does not exist, skipping email');
+      if (sessionError) {
+        console.error('[EMAIL DEBUG] Error getting session:', sessionError);
         return false;
       }
-      
-      // Get users who have enabled notifications for all messages
-      const { data: userPreferences, error } = await supabase
+
+      // First get the notification preferences
+      const { data: preferences, error: prefError } = await supabase
         .from('notification_preferences')
-        .select(`
-          user_id,
-          receive_all_messages,
-          profiles:user_id (
-            email
-          )
-        `)
+        .select('user_id, receive_all_messages')
         .eq('receive_all_messages', true);
-      
-      if (error) {
-        console.error('Error fetching user preferences:', error);
+
+      if (prefError) {
+        console.error('[EMAIL DEBUG] Error fetching user preferences:', prefError);
         return false;
       }
-      
-      // Get list of emails to notify
-      const recipientEmails = userPreferences
-        .filter(pref => pref.profiles?.email) // Only include users with email
-        .map(pref => pref.profiles?.email);
-      
-      if (recipientEmails.length === 0) {
-        console.log('No recipients for message notification');
+
+      if (!preferences?.length) {
+        console.log('[EMAIL DEBUG] No users have notifications enabled');
         return false;
       }
-      
+
+      console.log('[EMAIL DEBUG] Found preferences for users:', preferences.map(p => p.user_id));
+
+      // Get the user's email from their session
+      const recipientEmails = [session.user.email];
+
+      console.log('[EMAIL DEBUG] Recipient emails:', recipientEmails);
+
+      if (!recipientEmails?.length) {
+        console.log('[EMAIL DEBUG] No recipients found for new message notification');
+        return false;
+      }
+
       // Get email template
       const emailContent = emailTemplates.newMessage(authorUsername, message.content);
-      
-      // Send to all recipients using BCC
-      const subject = `New message from ${authorUsername || 'Anonymous'}`;
-      await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
-      
-      // Record that we sent an email
-      emailRateLimiter.recordEmailSent();
-      
-      return true;
+
+      // Send email to all recipients using BCC
+      const subject = `New Message from ${authorUsername}`;
+      const result = await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
+
+      if (result) {
+        // Record that we sent an email
+        emailRateLimiter.recordEmailSent();
+        console.log('[EMAIL DEBUG] Successfully sent new message notifications');
+      } else {
+        console.log('[EMAIL DEBUG] Failed to send new message notifications');
+      }
+
+      return result;
     } catch (error) {
-      console.error('Error sending message notification:', error);
+      console.error('[EMAIL DEBUG] Error in sendNewMessageNotification:', error);
       return false;
     }
   },
@@ -236,40 +335,41 @@ export const emailService = {
         return false;
       }
       
-      // Check if notification_preferences table exists
-      const { error: tableCheckError } = await supabase
-        .from('notification_preferences')
-        .select('count', { count: 'exact', head: true });
+      console.log('[EMAIL DEBUG] Starting announcement notification process');
       
-      if (tableCheckError) {
-        console.log('Notification preferences table does not exist, skipping email');
+      // Get the current user's session to access auth.users
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[EMAIL DEBUG] Error getting session:', sessionError);
         return false;
       }
-      
-      // Get users who have enabled notifications for announcements
-      const { data: userPreferences, error } = await supabase
+
+      // First get the notification preferences
+      const { data: preferences, error: prefError } = await supabase
         .from('notification_preferences')
-        .select(`
-          user_id,
-          receive_admin_announcements,
-          profiles:user_id (
-            email
-          )
-        `)
+        .select('user_id, receive_admin_announcements')
         .eq('receive_admin_announcements', true);
       
-      if (error) {
-        console.error('Error fetching user preferences:', error);
+      if (prefError) {
+        console.error('[EMAIL DEBUG] Error fetching announcement preferences:', prefError);
         return false;
       }
+
+      if (!preferences?.length) {
+        console.log('[EMAIL DEBUG] No users have announcement notifications enabled');
+        return false;
+      }
+
+      console.log('[EMAIL DEBUG] Found preferences for users:', preferences.map(p => p.user_id));
+
+      // Get the user's email from their session
+      const recipientEmails = [session.user.email];
       
-      // Get list of emails to notify
-      const recipientEmails = userPreferences
-        .filter(pref => pref.profiles?.email) // Only include users with email
-        .map(pref => pref.profiles?.email);
+      console.log('[EMAIL DEBUG] Announcement recipient emails:', recipientEmails);
       
-      if (recipientEmails.length === 0) {
-        console.log('No recipients for announcement notification');
+      if (!recipientEmails?.length) {
+        console.log('[EMAIL DEBUG] No recipients found for announcement');
         return false;
       }
       
@@ -278,14 +378,19 @@ export const emailService = {
       
       // Send email to all recipients using BCC
       const subject = `ANNOUNCEMENT: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`;
-      await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
+      const result = await sendMailToBcc(recipientEmails, subject, emailContent.text, emailContent.html);
       
-      // Record that we sent an email
-      emailRateLimiter.recordEmailSent();
+      if (result) {
+        // Record that we sent an email
+        emailRateLimiter.recordEmailSent();
+        console.log('[EMAIL DEBUG] Successfully sent announcement emails');
+      } else {
+        console.log('[EMAIL DEBUG] Failed to send announcement emails');
+      }
       
-      return true;
+      return result;
     } catch (error) {
-      console.error('Error sending announcement notification:', error);
+      console.error('[EMAIL DEBUG] Error in sendAnnouncementNotification:', error);
       return false;
     }
   },
@@ -355,7 +460,65 @@ export const emailService = {
       console.error('Error sending mention notifications:', error);
       return false;
     }
+  },
+
+  // Utility function to disable notifications for all users except one
+  disableNotificationsExceptFor: async (exceptEmail) => {
+    try {
+      console.log('[EMAIL DEBUG] Disabling notifications for all users except:', exceptEmail);
+      
+      // Get the current user's ID since we know it's the admin
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('[EMAIL DEBUG] Error getting current user:', userError);
+        return false;
+      }
+      
+      if (!user?.id) {
+        console.error('[EMAIL DEBUG] Could not get current user ID');
+        return false;
+      }
+
+      // First, ensure a notification preference exists for the admin
+      const { error: insertError } = await supabase
+        .from('notification_preferences')
+        .insert({
+          user_id: user.id,
+          receive_all_messages: true,
+          receive_admin_announcements: true,
+          receive_direct_mentions: true
+        })
+        .select()
+        .maybeSingle();
+
+      if (insertError && !insertError.message.includes('duplicate')) {
+        console.error('[EMAIL DEBUG] Error creating admin preferences:', insertError);
+        return false;
+      }
+      
+      // Update all other users' preferences
+      const { error: updateError } = await supabase
+        .from('notification_preferences')
+        .update({
+          receive_all_messages: false,
+          receive_admin_announcements: false,
+          receive_direct_mentions: false
+        })
+        .neq('user_id', user.id);
+      
+      if (updateError) {
+        console.error('[EMAIL DEBUG] Error updating notification preferences:', updateError);
+        return false;
+      }
+      
+      console.log('[EMAIL DEBUG] Successfully updated notification preferences');
+      return true;
+    } catch (error) {
+      console.error('[EMAIL DEBUG] Error in disableNotificationsExceptFor:', error);
+      return false;
+    }
   }
 };
 
-export default emailService; 
+export { sendMail, sendMailToBcc, emailService as default }; 
