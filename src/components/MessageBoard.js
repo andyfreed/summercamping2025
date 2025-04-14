@@ -39,7 +39,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SignUpForm from './SignUpForm';
 import EmailNotificationPreferences from './EmailNotificationPreferences';
-import emailService from '../services/emailService';
+import { emailService } from '../services/emailService';
 
 function MessageBoard() {
   const navigate = useNavigate();
@@ -552,6 +552,20 @@ function MessageBoard() {
     }
   };
 
+  const handleDisableOtherNotifications = async () => {
+    try {
+      const result = await emailService.disableNotificationsExceptFor('a.freed@outlook.com');
+      if (result) {
+        alert('Successfully disabled notifications for all other users');
+      } else {
+        alert('Failed to disable notifications for other users');
+      }
+    } catch (error) {
+      console.error('Error disabling notifications:', error);
+      alert('Error disabling notifications for other users');
+    }
+  };
+
   const renderAuthCard = () => (
     <Card sx={{ maxWidth: 500, mx: 'auto', mb: 4 }}>
       <CardContent>
@@ -685,15 +699,25 @@ function MessageBoard() {
                 <MoreVertIcon />
               </IconButton>
             )}
-            <Button
-              variant="outlined"
-              startIcon={showPreferences ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-              endIcon={<SettingsIcon />}
-              onClick={() => setShowPreferences(!showPreferences)}
-              sx={{ ml: 'auto' }}
-            >
-              Email Notifications
-            </Button>
+            <Box sx={{ ml: 'auto', display: 'flex', gap: 2 }}>
+              {isAdmin && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={handleDisableOtherNotifications}
+                >
+                  Disable Other Users' Notifications
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                startIcon={showPreferences ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                endIcon={<SettingsIcon />}
+                onClick={() => setShowPreferences(!showPreferences)}
+              >
+                Email Notifications
+              </Button>
+            </Box>
           </Box>
           
           <Collapse in={showPreferences} timeout="auto" unmountOnExit>
